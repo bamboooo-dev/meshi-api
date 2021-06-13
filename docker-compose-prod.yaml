@@ -1,0 +1,16 @@
+version: "3.8"
+
+services:
+  db:
+    restart: always
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+  api:
+    image: bamboooo/meshi-api
+    entrypoint: "./bin/meshi-api"
+    restart: always
+    ports:
+      - 8080
+    depends_on:
+      - db
