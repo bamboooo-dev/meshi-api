@@ -1,6 +1,13 @@
 version: "3.8"
 
 services:
+  nginx:
+    restart: always
+    image: nginx:1.21.0
+    ports:
+      - 80:80
+    volumes:
+      - ./nginx/conf.d/default.conf:/etc/nginx/conf.d/default.conf
   db:
     restart: always
     image: mysql:8.0
