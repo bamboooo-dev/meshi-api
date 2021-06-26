@@ -3,10 +3,13 @@ package main
 import (
 	"context"
 	"fmt"
+	"log"
 	"net/http"
 
-	"github.com/bamboooo-dev/meshi-api/app/interface/handler"
-	"github.com/bamboooo-dev/meshi-api/app/registry"
+	"github.com/99designs/gqlgen/graphql/handler"
+	"github.com/99designs/gqlgen/graphql/playground"
+	"github.com/bamboooo-dev/meshi-api/graph"
+	"github.com/bamboooo-dev/meshi-api/graph/generated"
 
 	"go.uber.org/zap"
 )
@@ -36,15 +39,16 @@ func main() {
 
 	sugar := logger.Sugar()
 
-	registry := registry.NewRegistry(sugar)
+	resolver := graph.NewResolver(sugar)
 
-	mux := http.NewServeMux()
+	srv := handler.NewDefaultServer(generated.NewExecutableSchema(generated.Config{Resolvers: resolver}))
 
-	pingHandler := handler.NewPingHandler(sugar, registry)
+	http.Handle("/", playground.Handler("GraphQL playground", "/query"))
+	http.Handle("/query", srv)
 
-	mux.HandleFunc("/ping", pingHandler.Handle(ctx))
+	log.Print("connect to http://localhost:8080/ for GraphQL playground")
 
-	if err := http.ListenAndServe(":8080", mux); err != nil {
+	if err := http.ListenAndServe(":8080", nil); err != nil {
 		sugar.Error(ctx, err)
 	}
 }
