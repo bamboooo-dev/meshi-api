@@ -11,8 +11,9 @@ import (
 // It serves as dependency injection for your app, add any dependencies you require here.
 
 type Resolver struct {
-	todos  []*model.Todo
-	logger *zap.SugaredLogger
+	todos       []*model.Todo
+	restaurants []*model.Restaurant
+	logger      *zap.SugaredLogger
 }
 
 func NewResolver(l *zap.SugaredLogger) *Resolver {

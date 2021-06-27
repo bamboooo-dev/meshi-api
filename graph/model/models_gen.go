@@ -2,6 +2,15 @@
 
 package model
 
+type FavoriteRestaurant struct {
+	UserID       string `json:"userId"`
+	RestaurantID string `json:"restaurantId"`
+}
+
+type NewFavoriteRestaurant struct {
+	RestaurantID string `json:"restaurantId"`
+}
+
 type NewTodo struct {
 	Text   string `json:"text"`
 	UserID string `json:"userId"`
