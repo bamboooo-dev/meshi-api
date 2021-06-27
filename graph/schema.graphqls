@@ -26,3 +26,33 @@ input NewTodo {
 type Mutation {
   createTodo(input: NewTodo!): Todo!
 }
+
+type Restaurant {
+  name: String!
+  id: ID!
+  url: String
+  phone: String
+  price: String
+  categories: [Category!]
+  location: Location!
+  coordinates: Coordinates
+  photos: [String!]!
+}
+
+type Category {
+  title: String!
+}
+
+type Location {
+  address1: String
+  address2: String
+  address3: String
+  city: String
+  prefecture: String
+  postalCode: String
+}
+
+type Coordinates {
+  latitude: Float!
+  longitude: Float!
+}
