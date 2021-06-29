@@ -8,8 +8,10 @@ import (
 
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/99designs/gqlgen/graphql/playground"
+	"github.com/bamboooo-dev/meshi-api/auth"
 	"github.com/bamboooo-dev/meshi-api/graph"
 	"github.com/bamboooo-dev/meshi-api/graph/generated"
+	"github.com/urfave/negroni"
 
 	"go.uber.org/zap"
 )
@@ -43,12 +45,19 @@ func main() {
 
 	srv := handler.NewDefaultServer(generated.NewExecutableSchema(generated.Config{Resolvers: resolver}))
 
-	http.Handle("/", playground.Handler("GraphQL playground", "/query"))
-	http.Handle("/query", srv)
+	jwtMiddleware := auth.NewJWTMiddleware()
+
+	mux := http.NewServeMux()
+
+	mux.Handle("/", playground.Handler("GraphQL playground", "/query"))
+	mux.Handle("/query", srv)
+
+	n := negroni.New(negroni.HandlerFunc(jwtMiddleware.HandlerWithNext))
+	n.UseHandler(mux)
 
 	log.Print("connect to http://localhost:8080/ for GraphQL playground")
 
-	if err := http.ListenAndServe(":8080", nil); err != nil {
+	if err := http.ListenAndServe(":8080", n); err != nil {
 		sugar.Error(ctx, err)
 	}
 }
