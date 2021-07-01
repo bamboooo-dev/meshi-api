@@ -26,13 +26,13 @@ func NewJWTMiddleware() *jwtmiddleware.JWTMiddleware {
 	jwtMiddleware := jwtmiddleware.New(jwtmiddleware.Options{
 		ValidationKeyGetter: func(token *jwt.Token) (interface{}, error) {
 			// Verify 'aud' claim
-			aud := "YOUR_API_IDENTIFIER"
+			aud := "https://dev.api.meshibugyo.net/query"
 			checkAud := token.Claims.(jwt.MapClaims).VerifyAudience(aud, false)
 			if !checkAud {
 				return token, errors.New("invalid audience")
 			}
 			// Verify 'iss' claim
-			iss := "https://meshibugyo.jp.auth0.com/"
+			iss := "https://meshibugyo-dev.jp.auth0.com/"
 			checkIss := token.Claims.(jwt.MapClaims).VerifyIssuer(iss, false)
 			if !checkIss {
 				return token, errors.New("invalid issuer")
@@ -53,7 +53,7 @@ func NewJWTMiddleware() *jwtmiddleware.JWTMiddleware {
 
 func getPemCert(token *jwt.Token) (string, error) {
 	cert := ""
-	resp, err := http.Get("https://meshibugyo.jp.auth0.com/.well-known/jwks.json")
+	resp, err := http.Get("https://meshibugyo-dev.jp.auth0.com/.well-known/jwks.json")
 
 	if err != nil {
 		return cert, err

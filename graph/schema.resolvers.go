@@ -10,6 +10,7 @@ import (
 
 	"github.com/bamboooo-dev/meshi-api/graph/generated"
 	"github.com/bamboooo-dev/meshi-api/graph/model"
+	"github.com/form3tech-oss/jwt-go"
 )
 
 func (r *mutationResolver) CreateTodo(ctx context.Context, input model.NewTodo) (*model.Todo, error) {
@@ -27,6 +28,7 @@ func (r *mutationResolver) CreateFavoriteRestaurant(ctx context.Context, input m
 }
 
 func (r *queryResolver) Todos(ctx context.Context) ([]*model.Todo, error) {
+	fmt.Println(ctx.Value("user").(*jwt.Token).Claims.(jwt.MapClaims)["sub"])
 	return r.todos, nil
 }
 
