@@ -7,7 +7,7 @@ tmp_dir = "tmp"
 
 [build]
 # Just plain old shell command. You could use `make` as well.
-cmd = "GOOS=linux GOARCH=amd64 CGO_ENABLED=0 make"
+cmd = "GOOS=linux GOARCH=arm64 CGO_ENABLED=0 make"
 # Binary file yields from `cmd`.
 bin = "bin/meshi-api"
 # Customize binary.

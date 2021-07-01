@@ -8,9 +8,11 @@ import (
 
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/99designs/gqlgen/graphql/playground"
+	"github.com/bamboooo-dev/meshi-api/app/interface/mysql"
 	"github.com/bamboooo-dev/meshi-api/auth"
 	"github.com/bamboooo-dev/meshi-api/graph"
 	"github.com/bamboooo-dev/meshi-api/graph/generated"
+	"github.com/bamboooo-dev/meshi-api/pkg/env"
 	"github.com/urfave/negroni"
 
 	"go.uber.org/zap"
@@ -28,6 +30,11 @@ func main() {
 
 	fmt.Printf("Version is %s\n", revision)
 
+	cfg, err := env.LoadConfig()
+	if err != nil {
+		panic(err)
+	}
+
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -40,6 +47,18 @@ func main() {
 	}()
 
 	sugar := logger.Sugar()
+
+	meshiDB, err := mysql.NewDB(cfg.MeshiMySQL)
+	if err != nil {
+		sugar.Error(ctx, err)
+		return
+	}
+	defer func() {
+		if err := meshiDB.Close(); err != nil {
+			sugar.Error(ctx, err)
+			return
+		}
+	}()
 
 	resolver := graph.NewResolver(sugar)
 

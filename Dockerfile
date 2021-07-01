@@ -1,4 +1,4 @@
-FROM golang:1.16.4-alpine3.13 AS go_build
+FROM golang:1.16.5-alpine3.14 AS go_build
 
 RUN apk --update --no-cache add git build-base openssh
 
