@@ -10,7 +10,7 @@ RUN go mod download
 COPY . /meshi-api
 RUN GOOS=linux GOARCH=amd64 CGO_ENABLED=0 make
 
-FROM alpine:3.13
+FROM alpine:3.14
 
 ENV TZ Asia/Tokyo
 
