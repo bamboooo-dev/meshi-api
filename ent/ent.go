@@ -10,6 +10,7 @@ import (
 	"entgo.io/ent/dialect"
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
+	"github.com/bamboooo-dev/meshi-api/ent/like"
 	"github.com/bamboooo-dev/meshi-api/ent/restaurant"
 )
 
@@ -31,6 +32,7 @@ type OrderFunc func(*sql.Selector)
 // columnChecker returns a function indicates if the column exists in the given column.
 func columnChecker(table string) func(string) error {
 	checks := map[string]func(string) bool{
+		like.Table:       like.ValidColumn,
 		restaurant.Table: restaurant.ValidColumn,
 	}
 	check, ok := checks[table]

@@ -12,6 +12,8 @@ import (
 // Tx is a transactional client that is created by calling Client.Tx().
 type Tx struct {
 	config
+	// Like is the client for interacting with the Like builders.
+	Like *LikeClient
 	// Restaurant is the client for interacting with the Restaurant builders.
 	Restaurant *RestaurantClient
 
@@ -149,6 +151,7 @@ func (tx *Tx) Client() *Client {
 }
 
 func (tx *Tx) init() {
+	tx.Like = NewLikeClient(tx.config)
 	tx.Restaurant = NewRestaurantClient(tx.config)
 }
 
@@ -159,7 +162,7 @@ func (tx *Tx) init() {
 // of them in order to commit or rollback the transaction.
 //
 // If a closed transaction is embedded in one of the generated entities, and the entity
-// applies a query, for example: Restaurant.QueryXXX(), the query will be executed
+// applies a query, for example: Like.QueryXXX(), the query will be executed
 // through the driver which created this transaction.
 //
 // Note that txDriver is not goroutine safe.

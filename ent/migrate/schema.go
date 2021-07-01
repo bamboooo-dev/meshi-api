@@ -8,6 +8,33 @@ import (
 )
 
 var (
+	// LikesColumns holds the columns for the "likes" table.
+	LikesColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "user_id", Type: field.TypeString},
+		{Name: "restaurant_likes", Type: field.TypeInt, Nullable: true},
+	}
+	// LikesTable holds the schema information for the "likes" table.
+	LikesTable = &schema.Table{
+		Name:       "likes",
+		Columns:    LikesColumns,
+		PrimaryKey: []*schema.Column{LikesColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "likes_restaurants_likes",
+				Columns:    []*schema.Column{LikesColumns[2]},
+				RefColumns: []*schema.Column{RestaurantsColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "like_user_id_restaurant_likes",
+				Unique:  true,
+				Columns: []*schema.Column{LikesColumns[1], LikesColumns[2]},
+			},
+		},
+	}
 	// RestaurantsColumns holds the columns for the "restaurants" table.
 	RestaurantsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
@@ -25,9 +52,11 @@ var (
 	}
 	// Tables holds all the tables in the schema.
 	Tables = []*schema.Table{
+		LikesTable,
 		RestaurantsTable,
 	}
 )
 
 func init() {
+	LikesTable.ForeignKeys[0].RefTable = RestaurantsTable
 }

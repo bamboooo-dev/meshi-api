@@ -6,5 +6,8 @@ import (
 	"entgo.io/ent/dialect/sql"
 )
 
+// Like is the predicate function for like builders.
+type Like func(*sql.Selector)
+
 // Restaurant is the predicate function for restaurant builders.
 type Restaurant func(*sql.Selector)

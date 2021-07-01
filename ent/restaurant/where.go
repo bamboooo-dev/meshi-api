@@ -4,6 +4,7 @@ package restaurant
 
 import (
 	"entgo.io/ent/dialect/sql"
+	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/bamboooo-dev/meshi-api/ent/predicate"
 )
 
@@ -559,6 +560,34 @@ func PriceEqualFold(v string) predicate.Restaurant {
 func PriceContainsFold(v string) predicate.Restaurant {
 	return predicate.Restaurant(func(s *sql.Selector) {
 		s.Where(sql.ContainsFold(s.C(FieldPrice), v))
+	})
+}
+
+// HasLikes applies the HasEdge predicate on the "likes" edge.
+func HasLikes() predicate.Restaurant {
+	return predicate.Restaurant(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.To(LikesTable, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, LikesTable, LikesColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasLikesWith applies the HasEdge predicate on the "likes" edge with a given conditions (other predicates).
+func HasLikesWith(preds ...predicate.Like) predicate.Restaurant {
+	return predicate.Restaurant(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.To(LikesInverseTable, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, LikesTable, LikesColumn),
+		)
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
 	})
 }
 

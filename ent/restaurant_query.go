@@ -4,6 +4,7 @@ package ent
 
 import (
 	"context"
+	"database/sql/driver"
 	"errors"
 	"fmt"
 	"math"
@@ -11,6 +12,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/bamboooo-dev/meshi-api/ent/like"
 	"github.com/bamboooo-dev/meshi-api/ent/predicate"
 	"github.com/bamboooo-dev/meshi-api/ent/restaurant"
 )
@@ -24,6 +26,8 @@ type RestaurantQuery struct {
 	order      []OrderFunc
 	fields     []string
 	predicates []predicate.Restaurant
+	// eager-loading edges.
+	withLikes *LikeQuery
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -58,6 +62,28 @@ func (rq *RestaurantQuery) Unique(unique bool) *RestaurantQuery {
 func (rq *RestaurantQuery) Order(o ...OrderFunc) *RestaurantQuery {
 	rq.order = append(rq.order, o...)
 	return rq
+}
+
+// QueryLikes chains the current query on the "likes" edge.
+func (rq *RestaurantQuery) QueryLikes() *LikeQuery {
+	query := &LikeQuery{config: rq.config}
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := rq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := rq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(restaurant.Table, restaurant.FieldID, selector),
+			sqlgraph.To(like.Table, like.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, restaurant.LikesTable, restaurant.LikesColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(rq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
 }
 
 // First returns the first Restaurant entity from the query.
@@ -241,10 +267,22 @@ func (rq *RestaurantQuery) Clone() *RestaurantQuery {
 		offset:     rq.offset,
 		order:      append([]OrderFunc{}, rq.order...),
 		predicates: append([]predicate.Restaurant{}, rq.predicates...),
+		withLikes:  rq.withLikes.Clone(),
 		// clone intermediate query.
 		sql:  rq.sql.Clone(),
 		path: rq.path,
 	}
+}
+
+// WithLikes tells the query-builder to eager-load the nodes that are connected to
+// the "likes" edge. The optional arguments are used to configure the query builder of the edge.
+func (rq *RestaurantQuery) WithLikes(opts ...func(*LikeQuery)) *RestaurantQuery {
+	query := &LikeQuery{config: rq.config}
+	for _, opt := range opts {
+		opt(query)
+	}
+	rq.withLikes = query
+	return rq
 }
 
 // GroupBy is used to group vertices by one or more fields/columns.
@@ -310,8 +348,11 @@ func (rq *RestaurantQuery) prepareQuery(ctx context.Context) error {
 
 func (rq *RestaurantQuery) sqlAll(ctx context.Context) ([]*Restaurant, error) {
 	var (
-		nodes = []*Restaurant{}
-		_spec = rq.querySpec()
+		nodes       = []*Restaurant{}
+		_spec       = rq.querySpec()
+		loadedTypes = [1]bool{
+			rq.withLikes != nil,
+		}
 	)
 	_spec.ScanValues = func(columns []string) ([]interface{}, error) {
 		node := &Restaurant{config: rq.config}
@@ -323,6 +364,7 @@ func (rq *RestaurantQuery) sqlAll(ctx context.Context) ([]*Restaurant, error) {
 			return fmt.Errorf("ent: Assign called without calling ScanValues")
 		}
 		node := nodes[len(nodes)-1]
+		node.Edges.loadedTypes = loadedTypes
 		return node.assignValues(columns, values)
 	}
 	if err := sqlgraph.QueryNodes(ctx, rq.driver, _spec); err != nil {
@@ -331,6 +373,36 @@ func (rq *RestaurantQuery) sqlAll(ctx context.Context) ([]*Restaurant, error) {
 	if len(nodes) == 0 {
 		return nodes, nil
 	}
+
+	if query := rq.withLikes; query != nil {
+		fks := make([]driver.Value, 0, len(nodes))
+		nodeids := make(map[int]*Restaurant)
+		for i := range nodes {
+			fks = append(fks, nodes[i].ID)
+			nodeids[nodes[i].ID] = nodes[i]
+			nodes[i].Edges.Likes = []*Like{}
+		}
+		query.withFKs = true
+		query.Where(predicate.Like(func(s *sql.Selector) {
+			s.Where(sql.InValues(restaurant.LikesColumn, fks...))
+		}))
+		neighbors, err := query.All(ctx)
+		if err != nil {
+			return nil, err
+		}
+		for _, n := range neighbors {
+			fk := n.restaurant_likes
+			if fk == nil {
+				return nil, fmt.Errorf(`foreign-key "restaurant_likes" is nil for node %v`, n.ID)
+			}
+			node, ok := nodeids[*fk]
+			if !ok {
+				return nil, fmt.Errorf(`unexpected foreign-key "restaurant_likes" returned %v for node %v`, *fk, n.ID)
+			}
+			node.Edges.Likes = append(node.Edges.Likes, n)
+		}
+	}
+
 	return nodes, nil
 }
 

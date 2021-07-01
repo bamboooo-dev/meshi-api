@@ -9,6 +9,19 @@ import (
 	"github.com/bamboooo-dev/meshi-api/ent"
 )
 
+// The LikeFunc type is an adapter to allow the use of ordinary
+// function as Like mutator.
+type LikeFunc func(context.Context, *ent.LikeMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f LikeFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	mv, ok := m.(*ent.LikeMutation)
+	if !ok {
+		return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.LikeMutation", m)
+	}
+	return f(ctx, mv)
+}
+
 // The RestaurantFunc type is an adapter to allow the use of ordinary
 // function as Restaurant mutator.
 type RestaurantFunc func(context.Context, *ent.RestaurantMutation) (ent.Value, error)

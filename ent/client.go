@@ -9,10 +9,12 @@ import (
 
 	"github.com/bamboooo-dev/meshi-api/ent/migrate"
 
+	"github.com/bamboooo-dev/meshi-api/ent/like"
 	"github.com/bamboooo-dev/meshi-api/ent/restaurant"
 
 	"entgo.io/ent/dialect"
 	"entgo.io/ent/dialect/sql"
+	"entgo.io/ent/dialect/sql/sqlgraph"
 )
 
 // Client is the client that holds all ent builders.
@@ -20,6 +22,8 @@ type Client struct {
 	config
 	// Schema is the client for creating, migrating and dropping schema.
 	Schema *migrate.Schema
+	// Like is the client for interacting with the Like builders.
+	Like *LikeClient
 	// Restaurant is the client for interacting with the Restaurant builders.
 	Restaurant *RestaurantClient
 }
@@ -35,6 +39,7 @@ func NewClient(opts ...Option) *Client {
 
 func (c *Client) init() {
 	c.Schema = migrate.NewSchema(c.driver)
+	c.Like = NewLikeClient(c.config)
 	c.Restaurant = NewRestaurantClient(c.config)
 }
 
@@ -69,6 +74,7 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 	return &Tx{
 		ctx:        ctx,
 		config:     cfg,
+		Like:       NewLikeClient(cfg),
 		Restaurant: NewRestaurantClient(cfg),
 	}, nil
 }
@@ -88,6 +94,7 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 	cfg.driver = &txDriver{tx: tx, drv: c.driver}
 	return &Tx{
 		config:     cfg,
+		Like:       NewLikeClient(cfg),
 		Restaurant: NewRestaurantClient(cfg),
 	}, nil
 }
@@ -95,7 +102,7 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 // Debug returns a new debug-client. It's used to get verbose logging on specific operations.
 //
 //	client.Debug().
-//		Restaurant.
+//		Like.
 //		Query().
 //		Count(ctx)
 //
@@ -118,7 +125,114 @@ func (c *Client) Close() error {
 // Use adds the mutation hooks to all the entity clients.
 // In order to add hooks to a specific client, call: `client.Node.Use(...)`.
 func (c *Client) Use(hooks ...Hook) {
+	c.Like.Use(hooks...)
 	c.Restaurant.Use(hooks...)
+}
+
+// LikeClient is a client for the Like schema.
+type LikeClient struct {
+	config
+}
+
+// NewLikeClient returns a client for the Like from the given config.
+func NewLikeClient(c config) *LikeClient {
+	return &LikeClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `like.Hooks(f(g(h())))`.
+func (c *LikeClient) Use(hooks ...Hook) {
+	c.hooks.Like = append(c.hooks.Like, hooks...)
+}
+
+// Create returns a create builder for Like.
+func (c *LikeClient) Create() *LikeCreate {
+	mutation := newLikeMutation(c.config, OpCreate)
+	return &LikeCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of Like entities.
+func (c *LikeClient) CreateBulk(builders ...*LikeCreate) *LikeCreateBulk {
+	return &LikeCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for Like.
+func (c *LikeClient) Update() *LikeUpdate {
+	mutation := newLikeMutation(c.config, OpUpdate)
+	return &LikeUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *LikeClient) UpdateOne(l *Like) *LikeUpdateOne {
+	mutation := newLikeMutation(c.config, OpUpdateOne, withLike(l))
+	return &LikeUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *LikeClient) UpdateOneID(id int) *LikeUpdateOne {
+	mutation := newLikeMutation(c.config, OpUpdateOne, withLikeID(id))
+	return &LikeUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for Like.
+func (c *LikeClient) Delete() *LikeDelete {
+	mutation := newLikeMutation(c.config, OpDelete)
+	return &LikeDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a delete builder for the given entity.
+func (c *LikeClient) DeleteOne(l *Like) *LikeDeleteOne {
+	return c.DeleteOneID(l.ID)
+}
+
+// DeleteOneID returns a delete builder for the given id.
+func (c *LikeClient) DeleteOneID(id int) *LikeDeleteOne {
+	builder := c.Delete().Where(like.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &LikeDeleteOne{builder}
+}
+
+// Query returns a query builder for Like.
+func (c *LikeClient) Query() *LikeQuery {
+	return &LikeQuery{
+		config: c.config,
+	}
+}
+
+// Get returns a Like entity by its id.
+func (c *LikeClient) Get(ctx context.Context, id int) (*Like, error) {
+	return c.Query().Where(like.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *LikeClient) GetX(ctx context.Context, id int) *Like {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryRestaurant queries the restaurant edge of a Like.
+func (c *LikeClient) QueryRestaurant(l *Like) *RestaurantQuery {
+	query := &RestaurantQuery{config: c.config}
+	query.path = func(ctx context.Context) (fromV *sql.Selector, _ error) {
+		id := l.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(like.Table, like.FieldID, id),
+			sqlgraph.To(restaurant.Table, restaurant.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, like.RestaurantTable, like.RestaurantColumn),
+		)
+		fromV = sqlgraph.Neighbors(l.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *LikeClient) Hooks() []Hook {
+	return c.hooks.Like
 }
 
 // RestaurantClient is a client for the Restaurant schema.
@@ -204,6 +318,22 @@ func (c *RestaurantClient) GetX(ctx context.Context, id int) *Restaurant {
 		panic(err)
 	}
 	return obj
+}
+
+// QueryLikes queries the likes edge of a Restaurant.
+func (c *RestaurantClient) QueryLikes(r *Restaurant) *LikeQuery {
+	query := &LikeQuery{config: c.config}
+	query.path = func(ctx context.Context) (fromV *sql.Selector, _ error) {
+		id := r.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(restaurant.Table, restaurant.FieldID, id),
+			sqlgraph.To(like.Table, like.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, restaurant.LikesTable, restaurant.LikesColumn),
+		)
+		fromV = sqlgraph.Neighbors(r.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
 }
 
 // Hooks returns the client hooks.

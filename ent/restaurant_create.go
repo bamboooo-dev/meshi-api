@@ -9,6 +9,7 @@ import (
 
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/bamboooo-dev/meshi-api/ent/like"
 	"github.com/bamboooo-dev/meshi-api/ent/restaurant"
 )
 
@@ -41,6 +42,21 @@ func (rc *RestaurantCreate) SetPhone(s string) *RestaurantCreate {
 func (rc *RestaurantCreate) SetPrice(s string) *RestaurantCreate {
 	rc.mutation.SetPrice(s)
 	return rc
+}
+
+// AddLikeIDs adds the "likes" edge to the Like entity by IDs.
+func (rc *RestaurantCreate) AddLikeIDs(ids ...int) *RestaurantCreate {
+	rc.mutation.AddLikeIDs(ids...)
+	return rc
+}
+
+// AddLikes adds the "likes" edges to the Like entity.
+func (rc *RestaurantCreate) AddLikes(l ...*Like) *RestaurantCreate {
+	ids := make([]int, len(l))
+	for i := range l {
+		ids[i] = l[i].ID
+	}
+	return rc.AddLikeIDs(ids...)
 }
 
 // Mutation returns the RestaurantMutation object of the builder.
@@ -169,6 +185,25 @@ func (rc *RestaurantCreate) createSpec() (*Restaurant, *sqlgraph.CreateSpec) {
 			Column: restaurant.FieldPrice,
 		})
 		_node.Price = value
+	}
+	if nodes := rc.mutation.LikesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   restaurant.LikesTable,
+			Columns: []string{restaurant.LikesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: like.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec
 }

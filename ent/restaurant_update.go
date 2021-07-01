@@ -9,6 +9,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/bamboooo-dev/meshi-api/ent/like"
 	"github.com/bamboooo-dev/meshi-api/ent/predicate"
 	"github.com/bamboooo-dev/meshi-api/ent/restaurant"
 )
@@ -50,9 +51,45 @@ func (ru *RestaurantUpdate) SetPrice(s string) *RestaurantUpdate {
 	return ru
 }
 
+// AddLikeIDs adds the "likes" edge to the Like entity by IDs.
+func (ru *RestaurantUpdate) AddLikeIDs(ids ...int) *RestaurantUpdate {
+	ru.mutation.AddLikeIDs(ids...)
+	return ru
+}
+
+// AddLikes adds the "likes" edges to the Like entity.
+func (ru *RestaurantUpdate) AddLikes(l ...*Like) *RestaurantUpdate {
+	ids := make([]int, len(l))
+	for i := range l {
+		ids[i] = l[i].ID
+	}
+	return ru.AddLikeIDs(ids...)
+}
+
 // Mutation returns the RestaurantMutation object of the builder.
 func (ru *RestaurantUpdate) Mutation() *RestaurantMutation {
 	return ru.mutation
+}
+
+// ClearLikes clears all "likes" edges to the Like entity.
+func (ru *RestaurantUpdate) ClearLikes() *RestaurantUpdate {
+	ru.mutation.ClearLikes()
+	return ru
+}
+
+// RemoveLikeIDs removes the "likes" edge to Like entities by IDs.
+func (ru *RestaurantUpdate) RemoveLikeIDs(ids ...int) *RestaurantUpdate {
+	ru.mutation.RemoveLikeIDs(ids...)
+	return ru
+}
+
+// RemoveLikes removes "likes" edges to Like entities.
+func (ru *RestaurantUpdate) RemoveLikes(l ...*Like) *RestaurantUpdate {
+	ids := make([]int, len(l))
+	for i := range l {
+		ids[i] = l[i].ID
+	}
+	return ru.RemoveLikeIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -168,6 +205,60 @@ func (ru *RestaurantUpdate) sqlSave(ctx context.Context) (n int, err error) {
 			Column: restaurant.FieldPrice,
 		})
 	}
+	if ru.mutation.LikesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   restaurant.LikesTable,
+			Columns: []string{restaurant.LikesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: like.FieldID,
+				},
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := ru.mutation.RemovedLikesIDs(); len(nodes) > 0 && !ru.mutation.LikesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   restaurant.LikesTable,
+			Columns: []string{restaurant.LikesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: like.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := ru.mutation.LikesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   restaurant.LikesTable,
+			Columns: []string{restaurant.LikesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: like.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
 	if n, err = sqlgraph.UpdateNodes(ctx, ru.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{restaurant.Label}
@@ -211,9 +302,45 @@ func (ruo *RestaurantUpdateOne) SetPrice(s string) *RestaurantUpdateOne {
 	return ruo
 }
 
+// AddLikeIDs adds the "likes" edge to the Like entity by IDs.
+func (ruo *RestaurantUpdateOne) AddLikeIDs(ids ...int) *RestaurantUpdateOne {
+	ruo.mutation.AddLikeIDs(ids...)
+	return ruo
+}
+
+// AddLikes adds the "likes" edges to the Like entity.
+func (ruo *RestaurantUpdateOne) AddLikes(l ...*Like) *RestaurantUpdateOne {
+	ids := make([]int, len(l))
+	for i := range l {
+		ids[i] = l[i].ID
+	}
+	return ruo.AddLikeIDs(ids...)
+}
+
 // Mutation returns the RestaurantMutation object of the builder.
 func (ruo *RestaurantUpdateOne) Mutation() *RestaurantMutation {
 	return ruo.mutation
+}
+
+// ClearLikes clears all "likes" edges to the Like entity.
+func (ruo *RestaurantUpdateOne) ClearLikes() *RestaurantUpdateOne {
+	ruo.mutation.ClearLikes()
+	return ruo
+}
+
+// RemoveLikeIDs removes the "likes" edge to Like entities by IDs.
+func (ruo *RestaurantUpdateOne) RemoveLikeIDs(ids ...int) *RestaurantUpdateOne {
+	ruo.mutation.RemoveLikeIDs(ids...)
+	return ruo
+}
+
+// RemoveLikes removes "likes" edges to Like entities.
+func (ruo *RestaurantUpdateOne) RemoveLikes(l ...*Like) *RestaurantUpdateOne {
+	ids := make([]int, len(l))
+	for i := range l {
+		ids[i] = l[i].ID
+	}
+	return ruo.RemoveLikeIDs(ids...)
 }
 
 // Select allows selecting one or more fields (columns) of the returned entity.
@@ -352,6 +479,60 @@ func (ruo *RestaurantUpdateOne) sqlSave(ctx context.Context) (_node *Restaurant,
 			Value:  value,
 			Column: restaurant.FieldPrice,
 		})
+	}
+	if ruo.mutation.LikesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   restaurant.LikesTable,
+			Columns: []string{restaurant.LikesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: like.FieldID,
+				},
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := ruo.mutation.RemovedLikesIDs(); len(nodes) > 0 && !ruo.mutation.LikesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   restaurant.LikesTable,
+			Columns: []string{restaurant.LikesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: like.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := ruo.mutation.LikesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   restaurant.LikesTable,
+			Columns: []string{restaurant.LikesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: like.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	_node = &Restaurant{config: ruo.config}
 	_spec.Assign = _node.assignValues
