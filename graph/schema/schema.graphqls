@@ -14,9 +14,9 @@ type User {
   name: String!
 }
 
-type FavoriteRestaurant {
+type Like {
   userId: String!
-  restaurantId: String!
+  restaurantId: ID!
 }
 
 type Query {
@@ -31,11 +31,7 @@ input NewTodo {
   userId: String!
 }
 
-input NewFavoriteRestaurant {
-  restaurantId: String!
-}
-
 type Mutation {
   createTodo(input: NewTodo!): Todo!
-  createFavoriteRestaurant(input: NewFavoriteRestaurant!): FavoriteRestaurant!
+  likeRestaurant(restaurantId: ID!): Like!
 }

@@ -60,7 +60,7 @@ func main() {
 		}
 	}()
 
-	resolver := graph.NewResolver(sugar)
+	resolver := graph.NewResolver(sugar, meshiDB)
 
 	srv := handler.NewDefaultServer(generated.NewExecutableSchema(generated.Config{Resolvers: resolver}))
 

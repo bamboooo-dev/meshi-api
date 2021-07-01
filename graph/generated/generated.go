@@ -53,7 +53,7 @@ type ComplexityRoot struct {
 		Longitude func(childComplexity int) int
 	}
 
-	FavoriteRestaurant struct {
+	Like struct {
 		RestaurantID func(childComplexity int) int
 		UserID       func(childComplexity int) int
 	}
@@ -68,8 +68,8 @@ type ComplexityRoot struct {
 	}
 
 	Mutation struct {
-		CreateFavoriteRestaurant func(childComplexity int, input model.NewFavoriteRestaurant) int
-		CreateTodo               func(childComplexity int, input model.NewTodo) int
+		CreateTodo     func(childComplexity int, input model.NewTodo) int
+		LikeRestaurant func(childComplexity int, restaurantID string) int
 	}
 
 	Query struct {
@@ -106,7 +106,7 @@ type ComplexityRoot struct {
 
 type MutationResolver interface {
 	CreateTodo(ctx context.Context, input model.NewTodo) (*model.Todo, error)
-	CreateFavoriteRestaurant(ctx context.Context, input model.NewFavoriteRestaurant) (*model.FavoriteRestaurant, error)
+	LikeRestaurant(ctx context.Context, restaurantID string) (*model.Like, error)
 }
 type QueryResolver interface {
 	Todos(ctx context.Context) ([]*model.Todo, error)
@@ -154,19 +154,19 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Coordinates.Longitude(childComplexity), true
 
-	case "FavoriteRestaurant.restaurantId":
-		if e.complexity.FavoriteRestaurant.RestaurantID == nil {
+	case "Like.restaurantId":
+		if e.complexity.Like.RestaurantID == nil {
 			break
 		}
 
-		return e.complexity.FavoriteRestaurant.RestaurantID(childComplexity), true
+		return e.complexity.Like.RestaurantID(childComplexity), true
 
-	case "FavoriteRestaurant.userId":
-		if e.complexity.FavoriteRestaurant.UserID == nil {
+	case "Like.userId":
+		if e.complexity.Like.UserID == nil {
 			break
 		}
 
-		return e.complexity.FavoriteRestaurant.UserID(childComplexity), true
+		return e.complexity.Like.UserID(childComplexity), true
 
 	case "Location.address1":
 		if e.complexity.Location.Address1 == nil {
@@ -210,18 +210,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Location.Prefecture(childComplexity), true
 
-	case "Mutation.createFavoriteRestaurant":
-		if e.complexity.Mutation.CreateFavoriteRestaurant == nil {
-			break
-		}
-
-		args, err := ec.field_Mutation_createFavoriteRestaurant_args(context.TODO(), rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Mutation.CreateFavoriteRestaurant(childComplexity, args["input"].(model.NewFavoriteRestaurant)), true
-
 	case "Mutation.createTodo":
 		if e.complexity.Mutation.CreateTodo == nil {
 			break
@@ -233,6 +221,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.CreateTodo(childComplexity, args["input"].(model.NewTodo)), true
+
+	case "Mutation.likeRestaurant":
+		if e.complexity.Mutation.LikeRestaurant == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_likeRestaurant_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.LikeRestaurant(childComplexity, args["restaurantId"].(string)), true
 
 	case "Query.favoriteRestaurants":
 		if e.complexity.Query.FavoriteRestaurants == nil {
@@ -477,9 +477,9 @@ type User {
   name: String!
 }
 
-type FavoriteRestaurant {
+type Like {
   userId: String!
-  restaurantId: String!
+  restaurantId: ID!
 }
 
 type Query {
@@ -494,13 +494,9 @@ input NewTodo {
   userId: String!
 }
 
-input NewFavoriteRestaurant {
-  restaurantId: String!
-}
-
 type Mutation {
   createTodo(input: NewTodo!): Todo!
-  createFavoriteRestaurant(input: NewFavoriteRestaurant!): FavoriteRestaurant!
+  likeRestaurant(restaurantId: ID!): Like!
 }
 `, BuiltIn: false},
 }
@@ -509,21 +505,6 @@ var parsedSchema = gqlparser.MustLoadSchema(sources...)
 // endregion ************************** generated!.gotpl **************************
 
 // region    ***************************** args.gotpl *****************************
-
-func (ec *executionContext) field_Mutation_createFavoriteRestaurant_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
-	var err error
-	args := map[string]interface{}{}
-	var arg0 model.NewFavoriteRestaurant
-	if tmp, ok := rawArgs["input"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
-		arg0, err = ec.unmarshalNNewFavoriteRestaurant2githubᚗcomᚋbambooooᚑdevᚋmeshiᚑapiᚋgraphᚋmodelᚐNewFavoriteRestaurant(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["input"] = arg0
-	return args, nil
-}
 
 func (ec *executionContext) field_Mutation_createTodo_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
@@ -537,6 +518,21 @@ func (ec *executionContext) field_Mutation_createTodo_args(ctx context.Context, 
 		}
 	}
 	args["input"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_likeRestaurant_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["restaurantId"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("restaurantId"))
+		arg0, err = ec.unmarshalNID2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["restaurantId"] = arg0
 	return args, nil
 }
 
@@ -698,7 +694,7 @@ func (ec *executionContext) _Coordinates_longitude(ctx context.Context, field gr
 	return ec.marshalNFloat2float64(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _FavoriteRestaurant_userId(ctx context.Context, field graphql.CollectedField, obj *model.FavoriteRestaurant) (ret graphql.Marshaler) {
+func (ec *executionContext) _Like_userId(ctx context.Context, field graphql.CollectedField, obj *model.Like) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -706,7 +702,7 @@ func (ec *executionContext) _FavoriteRestaurant_userId(ctx context.Context, fiel
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:     "FavoriteRestaurant",
+		Object:     "Like",
 		Field:      field,
 		Args:       nil,
 		IsMethod:   false,
@@ -733,7 +729,7 @@ func (ec *executionContext) _FavoriteRestaurant_userId(ctx context.Context, fiel
 	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _FavoriteRestaurant_restaurantId(ctx context.Context, field graphql.CollectedField, obj *model.FavoriteRestaurant) (ret graphql.Marshaler) {
+func (ec *executionContext) _Like_restaurantId(ctx context.Context, field graphql.CollectedField, obj *model.Like) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -741,7 +737,7 @@ func (ec *executionContext) _FavoriteRestaurant_restaurantId(ctx context.Context
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:     "FavoriteRestaurant",
+		Object:     "Like",
 		Field:      field,
 		Args:       nil,
 		IsMethod:   false,
@@ -765,7 +761,7 @@ func (ec *executionContext) _FavoriteRestaurant_restaurantId(ctx context.Context
 	}
 	res := resTmp.(string)
 	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
+	return ec.marshalNID2string(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Location_address1(ctx context.Context, field graphql.CollectedField, obj *model.Location) (ret graphql.Marshaler) {
@@ -1002,7 +998,7 @@ func (ec *executionContext) _Mutation_createTodo(ctx context.Context, field grap
 	return ec.marshalNTodo2ᚖgithubᚗcomᚋbambooooᚑdevᚋmeshiᚑapiᚋgraphᚋmodelᚐTodo(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Mutation_createFavoriteRestaurant(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+func (ec *executionContext) _Mutation_likeRestaurant(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -1019,7 +1015,7 @@ func (ec *executionContext) _Mutation_createFavoriteRestaurant(ctx context.Conte
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	rawArgs := field.ArgumentMap(ec.Variables)
-	args, err := ec.field_Mutation_createFavoriteRestaurant_args(ctx, rawArgs)
+	args, err := ec.field_Mutation_likeRestaurant_args(ctx, rawArgs)
 	if err != nil {
 		ec.Error(ctx, err)
 		return graphql.Null
@@ -1027,7 +1023,7 @@ func (ec *executionContext) _Mutation_createFavoriteRestaurant(ctx context.Conte
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().CreateFavoriteRestaurant(rctx, args["input"].(model.NewFavoriteRestaurant))
+		return ec.resolvers.Mutation().LikeRestaurant(rctx, args["restaurantId"].(string))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1039,9 +1035,9 @@ func (ec *executionContext) _Mutation_createFavoriteRestaurant(ctx context.Conte
 		}
 		return graphql.Null
 	}
-	res := resTmp.(*model.FavoriteRestaurant)
+	res := resTmp.(*model.Like)
 	fc.Result = res
-	return ec.marshalNFavoriteRestaurant2ᚖgithubᚗcomᚋbambooooᚑdevᚋmeshiᚑapiᚋgraphᚋmodelᚐFavoriteRestaurant(ctx, field.Selections, res)
+	return ec.marshalNLike2ᚖgithubᚗcomᚋbambooooᚑdevᚋmeshiᚑapiᚋgraphᚋmodelᚐLike(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query_todos(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -2852,26 +2848,6 @@ func (ec *executionContext) ___Type_ofType(ctx context.Context, field graphql.Co
 
 // region    **************************** input.gotpl *****************************
 
-func (ec *executionContext) unmarshalInputNewFavoriteRestaurant(ctx context.Context, obj interface{}) (model.NewFavoriteRestaurant, error) {
-	var it model.NewFavoriteRestaurant
-	var asMap = obj.(map[string]interface{})
-
-	for k, v := range asMap {
-		switch k {
-		case "restaurantId":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("restaurantId"))
-			it.RestaurantID, err = ec.unmarshalNString2string(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		}
-	}
-
-	return it, nil
-}
-
 func (ec *executionContext) unmarshalInputNewTodo(ctx context.Context, obj interface{}) (model.NewTodo, error) {
 	var it model.NewTodo
 	var asMap = obj.(map[string]interface{})
@@ -2967,24 +2943,24 @@ func (ec *executionContext) _Coordinates(ctx context.Context, sel ast.SelectionS
 	return out
 }
 
-var favoriteRestaurantImplementors = []string{"FavoriteRestaurant"}
+var likeImplementors = []string{"Like"}
 
-func (ec *executionContext) _FavoriteRestaurant(ctx context.Context, sel ast.SelectionSet, obj *model.FavoriteRestaurant) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, favoriteRestaurantImplementors)
+func (ec *executionContext) _Like(ctx context.Context, sel ast.SelectionSet, obj *model.Like) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, likeImplementors)
 
 	out := graphql.NewFieldSet(fields)
 	var invalids uint32
 	for i, field := range fields {
 		switch field.Name {
 		case "__typename":
-			out.Values[i] = graphql.MarshalString("FavoriteRestaurant")
+			out.Values[i] = graphql.MarshalString("Like")
 		case "userId":
-			out.Values[i] = ec._FavoriteRestaurant_userId(ctx, field, obj)
+			out.Values[i] = ec._Like_userId(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
 		case "restaurantId":
-			out.Values[i] = ec._FavoriteRestaurant_restaurantId(ctx, field, obj)
+			out.Values[i] = ec._Like_restaurantId(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
@@ -3053,8 +3029,8 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
-		case "createFavoriteRestaurant":
-			out.Values[i] = ec._Mutation_createFavoriteRestaurant(ctx, field)
+		case "likeRestaurant":
+			out.Values[i] = ec._Mutation_likeRestaurant(ctx, field)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
@@ -3560,20 +3536,6 @@ func (ec *executionContext) marshalNCategory2ᚖgithubᚗcomᚋbambooooᚑdevᚋ
 	return ec._Category(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNFavoriteRestaurant2githubᚗcomᚋbambooooᚑdevᚋmeshiᚑapiᚋgraphᚋmodelᚐFavoriteRestaurant(ctx context.Context, sel ast.SelectionSet, v model.FavoriteRestaurant) graphql.Marshaler {
-	return ec._FavoriteRestaurant(ctx, sel, &v)
-}
-
-func (ec *executionContext) marshalNFavoriteRestaurant2ᚖgithubᚗcomᚋbambooooᚑdevᚋmeshiᚑapiᚋgraphᚋmodelᚐFavoriteRestaurant(ctx context.Context, sel ast.SelectionSet, v *model.FavoriteRestaurant) graphql.Marshaler {
-	if v == nil {
-		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	return ec._FavoriteRestaurant(ctx, sel, v)
-}
-
 func (ec *executionContext) unmarshalNFloat2float64(ctx context.Context, v interface{}) (float64, error) {
 	res, err := graphql.UnmarshalFloat(v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -3604,6 +3566,20 @@ func (ec *executionContext) marshalNID2string(ctx context.Context, sel ast.Selec
 	return res
 }
 
+func (ec *executionContext) marshalNLike2githubᚗcomᚋbambooooᚑdevᚋmeshiᚑapiᚋgraphᚋmodelᚐLike(ctx context.Context, sel ast.SelectionSet, v model.Like) graphql.Marshaler {
+	return ec._Like(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNLike2ᚖgithubᚗcomᚋbambooooᚑdevᚋmeshiᚑapiᚋgraphᚋmodelᚐLike(ctx context.Context, sel ast.SelectionSet, v *model.Like) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._Like(ctx, sel, v)
+}
+
 func (ec *executionContext) marshalNLocation2ᚖgithubᚗcomᚋbambooooᚑdevᚋmeshiᚑapiᚋgraphᚋmodelᚐLocation(ctx context.Context, sel ast.SelectionSet, v *model.Location) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
@@ -3612,11 +3588,6 @@ func (ec *executionContext) marshalNLocation2ᚖgithubᚗcomᚋbambooooᚑdevᚋ
 		return graphql.Null
 	}
 	return ec._Location(ctx, sel, v)
-}
-
-func (ec *executionContext) unmarshalNNewFavoriteRestaurant2githubᚗcomᚋbambooooᚑdevᚋmeshiᚑapiᚋgraphᚋmodelᚐNewFavoriteRestaurant(ctx context.Context, v interface{}) (model.NewFavoriteRestaurant, error) {
-	res, err := ec.unmarshalInputNewFavoriteRestaurant(ctx, v)
-	return res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) unmarshalNNewTodo2githubᚗcomᚋbambooooᚑdevᚋmeshiᚑapiᚋgraphᚋmodelᚐNewTodo(ctx context.Context, v interface{}) (model.NewTodo, error) {

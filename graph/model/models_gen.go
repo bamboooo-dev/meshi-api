@@ -2,12 +2,8 @@
 
 package model
 
-type FavoriteRestaurant struct {
+type Like struct {
 	UserID       string `json:"userId"`
-	RestaurantID string `json:"restaurantId"`
-}
-
-type NewFavoriteRestaurant struct {
 	RestaurantID string `json:"restaurantId"`
 }
 
