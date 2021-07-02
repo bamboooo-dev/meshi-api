@@ -12,6 +12,7 @@ import (
 
 	"github.com/99designs/gqlgen/graphql"
 	"github.com/99designs/gqlgen/graphql/introspection"
+	model1 "github.com/bamboooo-dev/meshi-api/app/domain/model"
 	"github.com/bamboooo-dev/meshi-api/graph/model"
 	gqlparser "github.com/vektah/gqlparser/v2"
 	"github.com/vektah/gqlparser/v2/ast"
@@ -37,7 +38,8 @@ type Config struct {
 type ResolverRoot interface {
 	Mutation() MutationResolver
 	Query() QueryResolver
-	Todo() TodoResolver
+	Restaurant() RestaurantResolver
+	User() UserResolver
 }
 
 type DirectiveRoot struct {
@@ -68,7 +70,6 @@ type ComplexityRoot struct {
 	}
 
 	Mutation struct {
-		CreateTodo     func(childComplexity int, input model.NewTodo) int
 		LikeRestaurant func(childComplexity int, restaurantID string) int
 	}
 
@@ -76,7 +77,6 @@ type ComplexityRoot struct {
 		FavoriteRestaurants func(childComplexity int) int
 		NearRestaurants     func(childComplexity int) int
 		Restaurants         func(childComplexity int) int
-		Todos               func(childComplexity int) int
 	}
 
 	Restaurant struct {
@@ -91,13 +91,6 @@ type ComplexityRoot struct {
 		URL         func(childComplexity int) int
 	}
 
-	Todo struct {
-		Done func(childComplexity int) int
-		ID   func(childComplexity int) int
-		Text func(childComplexity int) int
-		User func(childComplexity int) int
-	}
-
 	User struct {
 		ID   func(childComplexity int) int
 		Name func(childComplexity int) int
@@ -105,17 +98,22 @@ type ComplexityRoot struct {
 }
 
 type MutationResolver interface {
-	CreateTodo(ctx context.Context, input model.NewTodo) (*model.Todo, error)
 	LikeRestaurant(ctx context.Context, restaurantID string) (*model.Like, error)
 }
 type QueryResolver interface {
-	Todos(ctx context.Context) ([]*model.Todo, error)
-	Restaurants(ctx context.Context) ([]*model.Restaurant, error)
-	NearRestaurants(ctx context.Context) ([]*model.Restaurant, error)
-	FavoriteRestaurants(ctx context.Context) ([]*model.Restaurant, error)
+	Restaurants(ctx context.Context) ([]*model1.Restaurant, error)
+	NearRestaurants(ctx context.Context) ([]*model1.Restaurant, error)
+	FavoriteRestaurants(ctx context.Context) ([]*model1.Restaurant, error)
 }
-type TodoResolver interface {
-	User(ctx context.Context, obj *model.Todo) (*model.User, error)
+type RestaurantResolver interface {
+	Price(ctx context.Context, obj *model1.Restaurant) (*string, error)
+	Categories(ctx context.Context, obj *model1.Restaurant) ([]*model.Category, error)
+	Location(ctx context.Context, obj *model1.Restaurant) (*model.Location, error)
+	Coordinates(ctx context.Context, obj *model1.Restaurant) (*model.Coordinates, error)
+	Photos(ctx context.Context, obj *model1.Restaurant) ([]string, error)
+}
+type UserResolver interface {
+	Name(ctx context.Context, obj *model1.User) (string, error)
 }
 
 type executableSchema struct {
@@ -210,18 +208,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Location.Prefecture(childComplexity), true
 
-	case "Mutation.createTodo":
-		if e.complexity.Mutation.CreateTodo == nil {
-			break
-		}
-
-		args, err := ec.field_Mutation_createTodo_args(context.TODO(), rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Mutation.CreateTodo(childComplexity, args["input"].(model.NewTodo)), true
-
 	case "Mutation.likeRestaurant":
 		if e.complexity.Mutation.LikeRestaurant == nil {
 			break
@@ -254,13 +240,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Query.Restaurants(childComplexity), true
-
-	case "Query.todos":
-		if e.complexity.Query.Todos == nil {
-			break
-		}
-
-		return e.complexity.Query.Todos(childComplexity), true
 
 	case "Restaurant.categories":
 		if e.complexity.Restaurant.Categories == nil {
@@ -324,34 +303,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Restaurant.URL(childComplexity), true
-
-	case "Todo.done":
-		if e.complexity.Todo.Done == nil {
-			break
-		}
-
-		return e.complexity.Todo.Done(childComplexity), true
-
-	case "Todo.id":
-		if e.complexity.Todo.ID == nil {
-			break
-		}
-
-		return e.complexity.Todo.ID(childComplexity), true
-
-	case "Todo.text":
-		if e.complexity.Todo.Text == nil {
-			break
-		}
-
-		return e.complexity.Todo.Text(childComplexity), true
-
-	case "Todo.user":
-		if e.complexity.Todo.User == nil {
-			break
-		}
-
-		return e.complexity.Todo.User(childComplexity), true
 
 	case "User.id":
 		if e.complexity.User.ID == nil {
@@ -431,6 +382,11 @@ func (ec *executionContext) introspectType(name string) (*introspection.Type, er
 }
 
 var sources = []*ast.Source{
+	{Name: "graph/schema/like.graphqls", Input: `type Like {
+  userId: String!
+  restaurantId: ID!
+}
+`, BuiltIn: false},
 	{Name: "graph/schema/restaurant.graphqls", Input: `type Restaurant {
   name: String!
   id: ID!
@@ -461,42 +417,19 @@ type Coordinates {
   longitude: Float!
 }
 `, BuiltIn: false},
-	{Name: "graph/schema/schema.graphqls", Input: `# GraphQL schema example
-#
-# https://gqlgen.com/getting-started/
-
-type Todo {
-  id: ID!
-  text: String!
-  done: Boolean!
-  user: User!
-}
-
-type User {
-  id: ID!
-  name: String!
-}
-
-type Like {
-  userId: String!
-  restaurantId: ID!
-}
-
-type Query {
-  todos: [Todo!]!
+	{Name: "graph/schema/schema.graphqls", Input: `type Query {
   restaurants: [Restaurant!]!
   nearRestaurants: [Restaurant!]!
   favoriteRestaurants: [Restaurant!]!
 }
 
-input NewTodo {
-  text: String!
-  userId: String!
-}
-
 type Mutation {
-  createTodo(input: NewTodo!): Todo!
   likeRestaurant(restaurantId: ID!): Like!
+}
+`, BuiltIn: false},
+	{Name: "graph/schema/user.graphqls", Input: `type User {
+  id: ID!
+  name: String!
 }
 `, BuiltIn: false},
 }
@@ -505,21 +438,6 @@ var parsedSchema = gqlparser.MustLoadSchema(sources...)
 // endregion ************************** generated!.gotpl **************************
 
 // region    ***************************** args.gotpl *****************************
-
-func (ec *executionContext) field_Mutation_createTodo_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
-	var err error
-	args := map[string]interface{}{}
-	var arg0 model.NewTodo
-	if tmp, ok := rawArgs["input"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
-		arg0, err = ec.unmarshalNNewTodo2githubᚗcomᚋbambooooᚑdevᚋmeshiᚑapiᚋgraphᚋmodelᚐNewTodo(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["input"] = arg0
-	return args, nil
-}
 
 func (ec *executionContext) field_Mutation_likeRestaurant_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
@@ -956,48 +874,6 @@ func (ec *executionContext) _Location_postalCode(ctx context.Context, field grap
 	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Mutation_createTodo(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "Mutation",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   true,
-		IsResolver: true,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	rawArgs := field.ArgumentMap(ec.Variables)
-	args, err := ec.field_Mutation_createTodo_args(ctx, rawArgs)
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	fc.Args = args
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().CreateTodo(rctx, args["input"].(model.NewTodo))
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(*model.Todo)
-	fc.Result = res
-	return ec.marshalNTodo2ᚖgithubᚗcomᚋbambooooᚑdevᚋmeshiᚑapiᚋgraphᚋmodelᚐTodo(ctx, field.Selections, res)
-}
-
 func (ec *executionContext) _Mutation_likeRestaurant(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -1040,41 +916,6 @@ func (ec *executionContext) _Mutation_likeRestaurant(ctx context.Context, field 
 	return ec.marshalNLike2ᚖgithubᚗcomᚋbambooooᚑdevᚋmeshiᚑapiᚋgraphᚋmodelᚐLike(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Query_todos(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "Query",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   true,
-		IsResolver: true,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().Todos(rctx)
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.([]*model.Todo)
-	fc.Result = res
-	return ec.marshalNTodo2ᚕᚖgithubᚗcomᚋbambooooᚑdevᚋmeshiᚑapiᚋgraphᚋmodelᚐTodoᚄ(ctx, field.Selections, res)
-}
-
 func (ec *executionContext) _Query_restaurants(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -1105,9 +946,9 @@ func (ec *executionContext) _Query_restaurants(ctx context.Context, field graphq
 		}
 		return graphql.Null
 	}
-	res := resTmp.([]*model.Restaurant)
+	res := resTmp.([]*model1.Restaurant)
 	fc.Result = res
-	return ec.marshalNRestaurant2ᚕᚖgithubᚗcomᚋbambooooᚑdevᚋmeshiᚑapiᚋgraphᚋmodelᚐRestaurantᚄ(ctx, field.Selections, res)
+	return ec.marshalNRestaurant2ᚕᚖgithubᚗcomᚋbambooooᚑdevᚋmeshiᚑapiᚋappᚋdomainᚋmodelᚐRestaurantᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query_nearRestaurants(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -1140,9 +981,9 @@ func (ec *executionContext) _Query_nearRestaurants(ctx context.Context, field gr
 		}
 		return graphql.Null
 	}
-	res := resTmp.([]*model.Restaurant)
+	res := resTmp.([]*model1.Restaurant)
 	fc.Result = res
-	return ec.marshalNRestaurant2ᚕᚖgithubᚗcomᚋbambooooᚑdevᚋmeshiᚑapiᚋgraphᚋmodelᚐRestaurantᚄ(ctx, field.Selections, res)
+	return ec.marshalNRestaurant2ᚕᚖgithubᚗcomᚋbambooooᚑdevᚋmeshiᚑapiᚋappᚋdomainᚋmodelᚐRestaurantᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query_favoriteRestaurants(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -1175,9 +1016,9 @@ func (ec *executionContext) _Query_favoriteRestaurants(ctx context.Context, fiel
 		}
 		return graphql.Null
 	}
-	res := resTmp.([]*model.Restaurant)
+	res := resTmp.([]*model1.Restaurant)
 	fc.Result = res
-	return ec.marshalNRestaurant2ᚕᚖgithubᚗcomᚋbambooooᚑdevᚋmeshiᚑapiᚋgraphᚋmodelᚐRestaurantᚄ(ctx, field.Selections, res)
+	return ec.marshalNRestaurant2ᚕᚖgithubᚗcomᚋbambooooᚑdevᚋmeshiᚑapiᚋappᚋdomainᚋmodelᚐRestaurantᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query___type(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -1251,7 +1092,7 @@ func (ec *executionContext) _Query___schema(ctx context.Context, field graphql.C
 	return ec.marshalO__Schema2ᚖgithubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐSchema(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Restaurant_name(ctx context.Context, field graphql.CollectedField, obj *model.Restaurant) (ret graphql.Marshaler) {
+func (ec *executionContext) _Restaurant_name(ctx context.Context, field graphql.CollectedField, obj *model1.Restaurant) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -1286,7 +1127,7 @@ func (ec *executionContext) _Restaurant_name(ctx context.Context, field graphql.
 	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Restaurant_id(ctx context.Context, field graphql.CollectedField, obj *model.Restaurant) (ret graphql.Marshaler) {
+func (ec *executionContext) _Restaurant_id(ctx context.Context, field graphql.CollectedField, obj *model1.Restaurant) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -1316,12 +1157,12 @@ func (ec *executionContext) _Restaurant_id(ctx context.Context, field graphql.Co
 		}
 		return graphql.Null
 	}
-	res := resTmp.(string)
+	res := resTmp.(int)
 	fc.Result = res
-	return ec.marshalNID2string(ctx, field.Selections, res)
+	return ec.marshalNID2int(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Restaurant_url(ctx context.Context, field graphql.CollectedField, obj *model.Restaurant) (ret graphql.Marshaler) {
+func (ec *executionContext) _Restaurant_url(ctx context.Context, field graphql.CollectedField, obj *model1.Restaurant) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -1348,12 +1189,12 @@ func (ec *executionContext) _Restaurant_url(ctx context.Context, field graphql.C
 	if resTmp == nil {
 		return graphql.Null
 	}
-	res := resTmp.(*string)
+	res := resTmp.(string)
 	fc.Result = res
-	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+	return ec.marshalOString2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Restaurant_phone(ctx context.Context, field graphql.CollectedField, obj *model.Restaurant) (ret graphql.Marshaler) {
+func (ec *executionContext) _Restaurant_phone(ctx context.Context, field graphql.CollectedField, obj *model1.Restaurant) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -1380,12 +1221,12 @@ func (ec *executionContext) _Restaurant_phone(ctx context.Context, field graphql
 	if resTmp == nil {
 		return graphql.Null
 	}
-	res := resTmp.(*string)
+	res := resTmp.(string)
 	fc.Result = res
-	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+	return ec.marshalOString2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Restaurant_price(ctx context.Context, field graphql.CollectedField, obj *model.Restaurant) (ret graphql.Marshaler) {
+func (ec *executionContext) _Restaurant_price(ctx context.Context, field graphql.CollectedField, obj *model1.Restaurant) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -1396,14 +1237,14 @@ func (ec *executionContext) _Restaurant_price(ctx context.Context, field graphql
 		Object:     "Restaurant",
 		Field:      field,
 		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
+		IsMethod:   true,
+		IsResolver: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Price, nil
+		return ec.resolvers.Restaurant().Price(rctx, obj)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1417,7 +1258,7 @@ func (ec *executionContext) _Restaurant_price(ctx context.Context, field graphql
 	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Restaurant_categories(ctx context.Context, field graphql.CollectedField, obj *model.Restaurant) (ret graphql.Marshaler) {
+func (ec *executionContext) _Restaurant_categories(ctx context.Context, field graphql.CollectedField, obj *model1.Restaurant) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -1428,14 +1269,14 @@ func (ec *executionContext) _Restaurant_categories(ctx context.Context, field gr
 		Object:     "Restaurant",
 		Field:      field,
 		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
+		IsMethod:   true,
+		IsResolver: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Categories, nil
+		return ec.resolvers.Restaurant().Categories(rctx, obj)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1449,7 +1290,7 @@ func (ec *executionContext) _Restaurant_categories(ctx context.Context, field gr
 	return ec.marshalOCategory2ᚕᚖgithubᚗcomᚋbambooooᚑdevᚋmeshiᚑapiᚋgraphᚋmodelᚐCategoryᚄ(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Restaurant_location(ctx context.Context, field graphql.CollectedField, obj *model.Restaurant) (ret graphql.Marshaler) {
+func (ec *executionContext) _Restaurant_location(ctx context.Context, field graphql.CollectedField, obj *model1.Restaurant) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -1460,14 +1301,14 @@ func (ec *executionContext) _Restaurant_location(ctx context.Context, field grap
 		Object:     "Restaurant",
 		Field:      field,
 		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
+		IsMethod:   true,
+		IsResolver: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Location, nil
+		return ec.resolvers.Restaurant().Location(rctx, obj)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1484,7 +1325,7 @@ func (ec *executionContext) _Restaurant_location(ctx context.Context, field grap
 	return ec.marshalNLocation2ᚖgithubᚗcomᚋbambooooᚑdevᚋmeshiᚑapiᚋgraphᚋmodelᚐLocation(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Restaurant_coordinates(ctx context.Context, field graphql.CollectedField, obj *model.Restaurant) (ret graphql.Marshaler) {
+func (ec *executionContext) _Restaurant_coordinates(ctx context.Context, field graphql.CollectedField, obj *model1.Restaurant) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -1495,14 +1336,14 @@ func (ec *executionContext) _Restaurant_coordinates(ctx context.Context, field g
 		Object:     "Restaurant",
 		Field:      field,
 		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
+		IsMethod:   true,
+		IsResolver: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Coordinates, nil
+		return ec.resolvers.Restaurant().Coordinates(rctx, obj)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1516,7 +1357,7 @@ func (ec *executionContext) _Restaurant_coordinates(ctx context.Context, field g
 	return ec.marshalOCoordinates2ᚖgithubᚗcomᚋbambooooᚑdevᚋmeshiᚑapiᚋgraphᚋmodelᚐCoordinates(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Restaurant_photos(ctx context.Context, field graphql.CollectedField, obj *model.Restaurant) (ret graphql.Marshaler) {
+func (ec *executionContext) _Restaurant_photos(ctx context.Context, field graphql.CollectedField, obj *model1.Restaurant) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -1527,14 +1368,14 @@ func (ec *executionContext) _Restaurant_photos(ctx context.Context, field graphq
 		Object:     "Restaurant",
 		Field:      field,
 		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
+		IsMethod:   true,
+		IsResolver: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Photos, nil
+		return ec.resolvers.Restaurant().Photos(rctx, obj)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1551,7 +1392,7 @@ func (ec *executionContext) _Restaurant_photos(ctx context.Context, field graphq
 	return ec.marshalNString2ᚕstringᚄ(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Todo_id(ctx context.Context, field graphql.CollectedField, obj *model.Todo) (ret graphql.Marshaler) {
+func (ec *executionContext) _User_id(ctx context.Context, field graphql.CollectedField, obj *model1.User) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -1559,7 +1400,7 @@ func (ec *executionContext) _Todo_id(ctx context.Context, field graphql.Collecte
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:     "Todo",
+		Object:     "User",
 		Field:      field,
 		Args:       nil,
 		IsMethod:   false,
@@ -1586,7 +1427,7 @@ func (ec *executionContext) _Todo_id(ctx context.Context, field graphql.Collecte
 	return ec.marshalNID2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Todo_text(ctx context.Context, field graphql.CollectedField, obj *model.Todo) (ret graphql.Marshaler) {
+func (ec *executionContext) _User_name(ctx context.Context, field graphql.CollectedField, obj *model1.User) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -1594,77 +1435,7 @@ func (ec *executionContext) _Todo_text(ctx context.Context, field graphql.Collec
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:     "Todo",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Text, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _Todo_done(ctx context.Context, field graphql.CollectedField, obj *model.Todo) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "Todo",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Done, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(bool)
-	fc.Result = res
-	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _Todo_user(ctx context.Context, field graphql.CollectedField, obj *model.Todo) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "Todo",
+		Object:     "User",
 		Field:      field,
 		Args:       nil,
 		IsMethod:   true,
@@ -1674,77 +1445,7 @@ func (ec *executionContext) _Todo_user(ctx context.Context, field graphql.Collec
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Todo().User(rctx, obj)
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(*model.User)
-	fc.Result = res
-	return ec.marshalNUser2ᚖgithubᚗcomᚋbambooooᚑdevᚋmeshiᚑapiᚋgraphᚋmodelᚐUser(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _User_id(ctx context.Context, field graphql.CollectedField, obj *model.User) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "User",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.ID, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNID2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _User_name(ctx context.Context, field graphql.CollectedField, obj *model.User) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "User",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Name, nil
+		return ec.resolvers.User().Name(rctx, obj)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -2848,34 +2549,6 @@ func (ec *executionContext) ___Type_ofType(ctx context.Context, field graphql.Co
 
 // region    **************************** input.gotpl *****************************
 
-func (ec *executionContext) unmarshalInputNewTodo(ctx context.Context, obj interface{}) (model.NewTodo, error) {
-	var it model.NewTodo
-	var asMap = obj.(map[string]interface{})
-
-	for k, v := range asMap {
-		switch k {
-		case "text":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("text"))
-			it.Text, err = ec.unmarshalNString2string(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		case "userId":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("userId"))
-			it.UserID, err = ec.unmarshalNString2string(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		}
-	}
-
-	return it, nil
-}
-
 // endregion **************************** input.gotpl *****************************
 
 // region    ************************** interface.gotpl ***************************
@@ -3024,11 +2697,6 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 		switch field.Name {
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("Mutation")
-		case "createTodo":
-			out.Values[i] = ec._Mutation_createTodo(ctx, field)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
 		case "likeRestaurant":
 			out.Values[i] = ec._Mutation_likeRestaurant(ctx, field)
 			if out.Values[i] == graphql.Null {
@@ -3060,20 +2728,6 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 		switch field.Name {
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("Query")
-		case "todos":
-			field := field
-			out.Concurrently(i, func() (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._Query_todos(ctx, field)
-				if res == graphql.Null {
-					atomic.AddUint32(&invalids, 1)
-				}
-				return res
-			})
 		case "restaurants":
 			field := field
 			out.Concurrently(i, func() (res graphql.Marshaler) {
@@ -3133,7 +2787,7 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 
 var restaurantImplementors = []string{"Restaurant"}
 
-func (ec *executionContext) _Restaurant(ctx context.Context, sel ast.SelectionSet, obj *model.Restaurant) graphql.Marshaler {
+func (ec *executionContext) _Restaurant(ctx context.Context, sel ast.SelectionSet, obj *model1.Restaurant) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, restaurantImplementors)
 
 	out := graphql.NewFieldSet(fields)
@@ -3145,71 +2799,18 @@ func (ec *executionContext) _Restaurant(ctx context.Context, sel ast.SelectionSe
 		case "name":
 			out.Values[i] = ec._Restaurant_name(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		case "id":
 			out.Values[i] = ec._Restaurant_id(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		case "url":
 			out.Values[i] = ec._Restaurant_url(ctx, field, obj)
 		case "phone":
 			out.Values[i] = ec._Restaurant_phone(ctx, field, obj)
 		case "price":
-			out.Values[i] = ec._Restaurant_price(ctx, field, obj)
-		case "categories":
-			out.Values[i] = ec._Restaurant_categories(ctx, field, obj)
-		case "location":
-			out.Values[i] = ec._Restaurant_location(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
-		case "coordinates":
-			out.Values[i] = ec._Restaurant_coordinates(ctx, field, obj)
-		case "photos":
-			out.Values[i] = ec._Restaurant_photos(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
-		default:
-			panic("unknown field " + strconv.Quote(field.Name))
-		}
-	}
-	out.Dispatch()
-	if invalids > 0 {
-		return graphql.Null
-	}
-	return out
-}
-
-var todoImplementors = []string{"Todo"}
-
-func (ec *executionContext) _Todo(ctx context.Context, sel ast.SelectionSet, obj *model.Todo) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, todoImplementors)
-
-	out := graphql.NewFieldSet(fields)
-	var invalids uint32
-	for i, field := range fields {
-		switch field.Name {
-		case "__typename":
-			out.Values[i] = graphql.MarshalString("Todo")
-		case "id":
-			out.Values[i] = ec._Todo_id(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&invalids, 1)
-			}
-		case "text":
-			out.Values[i] = ec._Todo_text(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&invalids, 1)
-			}
-		case "done":
-			out.Values[i] = ec._Todo_done(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&invalids, 1)
-			}
-		case "user":
 			field := field
 			out.Concurrently(i, func() (res graphql.Marshaler) {
 				defer func() {
@@ -3217,7 +2818,54 @@ func (ec *executionContext) _Todo(ctx context.Context, sel ast.SelectionSet, obj
 						ec.Error(ctx, ec.Recover(ctx, r))
 					}
 				}()
-				res = ec._Todo_user(ctx, field, obj)
+				res = ec._Restaurant_price(ctx, field, obj)
+				return res
+			})
+		case "categories":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Restaurant_categories(ctx, field, obj)
+				return res
+			})
+		case "location":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Restaurant_location(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
+		case "coordinates":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Restaurant_coordinates(ctx, field, obj)
+				return res
+			})
+		case "photos":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Restaurant_photos(ctx, field, obj)
 				if res == graphql.Null {
 					atomic.AddUint32(&invalids, 1)
 				}
@@ -3236,7 +2884,7 @@ func (ec *executionContext) _Todo(ctx context.Context, sel ast.SelectionSet, obj
 
 var userImplementors = []string{"User"}
 
-func (ec *executionContext) _User(ctx context.Context, sel ast.SelectionSet, obj *model.User) graphql.Marshaler {
+func (ec *executionContext) _User(ctx context.Context, sel ast.SelectionSet, obj *model1.User) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, userImplementors)
 
 	out := graphql.NewFieldSet(fields)
@@ -3248,13 +2896,22 @@ func (ec *executionContext) _User(ctx context.Context, sel ast.SelectionSet, obj
 		case "id":
 			out.Values[i] = ec._User_id(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		case "name":
-			out.Values[i] = ec._User_name(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._User_name(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -3551,6 +3208,21 @@ func (ec *executionContext) marshalNFloat2float64(ctx context.Context, sel ast.S
 	return res
 }
 
+func (ec *executionContext) unmarshalNID2int(ctx context.Context, v interface{}) (int, error) {
+	res, err := graphql.UnmarshalInt(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNID2int(ctx context.Context, sel ast.SelectionSet, v int) graphql.Marshaler {
+	res := graphql.MarshalInt(v)
+	if res == graphql.Null {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+	}
+	return res
+}
+
 func (ec *executionContext) unmarshalNID2string(ctx context.Context, v interface{}) (string, error) {
 	res, err := graphql.UnmarshalID(v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -3580,6 +3252,10 @@ func (ec *executionContext) marshalNLike2ᚖgithubᚗcomᚋbambooooᚑdevᚋmesh
 	return ec._Like(ctx, sel, v)
 }
 
+func (ec *executionContext) marshalNLocation2githubᚗcomᚋbambooooᚑdevᚋmeshiᚑapiᚋgraphᚋmodelᚐLocation(ctx context.Context, sel ast.SelectionSet, v model.Location) graphql.Marshaler {
+	return ec._Location(ctx, sel, &v)
+}
+
 func (ec *executionContext) marshalNLocation2ᚖgithubᚗcomᚋbambooooᚑdevᚋmeshiᚑapiᚋgraphᚋmodelᚐLocation(ctx context.Context, sel ast.SelectionSet, v *model.Location) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
@@ -3590,12 +3266,7 @@ func (ec *executionContext) marshalNLocation2ᚖgithubᚗcomᚋbambooooᚑdevᚋ
 	return ec._Location(ctx, sel, v)
 }
 
-func (ec *executionContext) unmarshalNNewTodo2githubᚗcomᚋbambooooᚑdevᚋmeshiᚑapiᚋgraphᚋmodelᚐNewTodo(ctx context.Context, v interface{}) (model.NewTodo, error) {
-	res, err := ec.unmarshalInputNewTodo(ctx, v)
-	return res, graphql.ErrorOnPath(ctx, err)
-}
-
-func (ec *executionContext) marshalNRestaurant2ᚕᚖgithubᚗcomᚋbambooooᚑdevᚋmeshiᚑapiᚋgraphᚋmodelᚐRestaurantᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Restaurant) graphql.Marshaler {
+func (ec *executionContext) marshalNRestaurant2ᚕᚖgithubᚗcomᚋbambooooᚑdevᚋmeshiᚑapiᚋappᚋdomainᚋmodelᚐRestaurantᚄ(ctx context.Context, sel ast.SelectionSet, v []*model1.Restaurant) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
 	isLen1 := len(v) == 1
@@ -3619,7 +3290,7 @@ func (ec *executionContext) marshalNRestaurant2ᚕᚖgithubᚗcomᚋbambooooᚑd
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalNRestaurant2ᚖgithubᚗcomᚋbambooooᚑdevᚋmeshiᚑapiᚋgraphᚋmodelᚐRestaurant(ctx, sel, v[i])
+			ret[i] = ec.marshalNRestaurant2ᚖgithubᚗcomᚋbambooooᚑdevᚋmeshiᚑapiᚋappᚋdomainᚋmodelᚐRestaurant(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -3632,7 +3303,7 @@ func (ec *executionContext) marshalNRestaurant2ᚕᚖgithubᚗcomᚋbambooooᚑd
 	return ret
 }
 
-func (ec *executionContext) marshalNRestaurant2ᚖgithubᚗcomᚋbambooooᚑdevᚋmeshiᚑapiᚋgraphᚋmodelᚐRestaurant(ctx context.Context, sel ast.SelectionSet, v *model.Restaurant) graphql.Marshaler {
+func (ec *executionContext) marshalNRestaurant2ᚖgithubᚗcomᚋbambooooᚑdevᚋmeshiᚑapiᚋappᚋdomainᚋmodelᚐRestaurant(ctx context.Context, sel ast.SelectionSet, v *model1.Restaurant) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "must not be null")
@@ -3685,71 +3356,6 @@ func (ec *executionContext) marshalNString2ᚕstringᚄ(ctx context.Context, sel
 	}
 
 	return ret
-}
-
-func (ec *executionContext) marshalNTodo2githubᚗcomᚋbambooooᚑdevᚋmeshiᚑapiᚋgraphᚋmodelᚐTodo(ctx context.Context, sel ast.SelectionSet, v model.Todo) graphql.Marshaler {
-	return ec._Todo(ctx, sel, &v)
-}
-
-func (ec *executionContext) marshalNTodo2ᚕᚖgithubᚗcomᚋbambooooᚑdevᚋmeshiᚑapiᚋgraphᚋmodelᚐTodoᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Todo) graphql.Marshaler {
-	ret := make(graphql.Array, len(v))
-	var wg sync.WaitGroup
-	isLen1 := len(v) == 1
-	if !isLen1 {
-		wg.Add(len(v))
-	}
-	for i := range v {
-		i := i
-		fc := &graphql.FieldContext{
-			Index:  &i,
-			Result: &v[i],
-		}
-		ctx := graphql.WithFieldContext(ctx, fc)
-		f := func(i int) {
-			defer func() {
-				if r := recover(); r != nil {
-					ec.Error(ctx, ec.Recover(ctx, r))
-					ret = nil
-				}
-			}()
-			if !isLen1 {
-				defer wg.Done()
-			}
-			ret[i] = ec.marshalNTodo2ᚖgithubᚗcomᚋbambooooᚑdevᚋmeshiᚑapiᚋgraphᚋmodelᚐTodo(ctx, sel, v[i])
-		}
-		if isLen1 {
-			f(i)
-		} else {
-			go f(i)
-		}
-
-	}
-	wg.Wait()
-	return ret
-}
-
-func (ec *executionContext) marshalNTodo2ᚖgithubᚗcomᚋbambooooᚑdevᚋmeshiᚑapiᚋgraphᚋmodelᚐTodo(ctx context.Context, sel ast.SelectionSet, v *model.Todo) graphql.Marshaler {
-	if v == nil {
-		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	return ec._Todo(ctx, sel, v)
-}
-
-func (ec *executionContext) marshalNUser2githubᚗcomᚋbambooooᚑdevᚋmeshiᚑapiᚋgraphᚋmodelᚐUser(ctx context.Context, sel ast.SelectionSet, v model.User) graphql.Marshaler {
-	return ec._User(ctx, sel, &v)
-}
-
-func (ec *executionContext) marshalNUser2ᚖgithubᚗcomᚋbambooooᚑdevᚋmeshiᚑapiᚋgraphᚋmodelᚐUser(ctx context.Context, sel ast.SelectionSet, v *model.User) graphql.Marshaler {
-	if v == nil {
-		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	return ec._User(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalN__Directive2githubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐDirective(ctx context.Context, sel ast.SelectionSet, v introspection.Directive) graphql.Marshaler {

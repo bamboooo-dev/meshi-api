@@ -5,11 +5,12 @@ import (
 
 	"github.com/bamboooo-dev/meshi-api/app/domain/repository"
 	"github.com/bamboooo-dev/meshi-api/ent"
+	"github.com/bamboooo-dev/meshi-api/graph/model"
 	"go.uber.org/zap"
 )
 
 type RestaurantService interface {
-	Like() error
+	Like(ctx context.Context, meshiDB *ent.Client, restarurantID int) (*model.Like, error)
 }
 
 type restaurantService struct {
@@ -24,6 +25,10 @@ func NewRestaurantService(l *zap.SugaredLogger, likeRepo repository.LikeReposito
 	}
 }
 
-func (s *restaurantService) Like(ctx context.Context, meshiDB *ent.Client) error {
-	return nil
+func (s *restaurantService) Like(ctx context.Context, meshiDB *ent.Client, restarurantID int) (*model.Like, error) {
+	like, err := s.likeRepo.Create(ctx, meshiDB, restarurantID)
+	if err != nil {
+		return nil, err
+	}
+	return like, nil
 }

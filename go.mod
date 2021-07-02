@@ -10,6 +10,7 @@ require (
 	github.com/form3tech-oss/jwt-go v3.2.3+incompatible
 	github.com/go-sql-driver/mysql v1.6.0
 	github.com/hashicorp/golang-lru v0.5.4 // indirect
+	github.com/jinzhu/copier v0.3.2
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/urfave/negroni v1.0.0
 	github.com/vektah/gqlparser/v2 v2.1.0

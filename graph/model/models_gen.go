@@ -2,17 +2,25 @@
 
 package model
 
+type Category struct {
+	Title string `json:"title"`
+}
+
+type Coordinates struct {
+	Latitude  float64 `json:"latitude"`
+	Longitude float64 `json:"longitude"`
+}
+
 type Like struct {
 	UserID       string `json:"userId"`
 	RestaurantID string `json:"restaurantId"`
 }
 
-type NewTodo struct {
-	Text   string `json:"text"`
-	UserID string `json:"userId"`
-}
-
-type User struct {
-	ID   string `json:"id"`
-	Name string `json:"name"`
+type Location struct {
+	Address1   *string `json:"address1"`
+	Address2   *string `json:"address2"`
+	Address3   *string `json:"address3"`
+	City       *string `json:"city"`
+	Prefecture *string `json:"prefecture"`
+	PostalCode *string `json:"postalCode"`
 }

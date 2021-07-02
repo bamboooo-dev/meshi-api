@@ -21,3 +21,15 @@ docker-compose up
 ```
 make install-devdeps
 ```
+
+# アーキテクチャ
+
+- GraphQL & DDD & 半 Clean Architecture  
+  [Creating GraphQL-Apps using Go](https://medium.com/@alexander.zimmermann96/creating-graphql-apps-using-go-7c9a12ad6b42)  
+  この人と思想一緒や
+- GraphQL と DDD の対応は  
+  [gqlgen のフィールド解決方法の使い分け tips](https://qiita.com/ryota-yamamoto/items/3f15f476f17db047ef5d)
+
+  > そもそも gqlgen の良さは GralphQL のスキーマを先に決めて、それに答えるバックエンドを作る「スキーマファースト開発」ができる点だと考えています。スキーマからリゾルバーの作成を gqlgen に任せ、リゾルバーがアプリケーションのユースケースを呼び出すことで、アプリケーション内部に GraphQL という概念が入り込まないようにしています。
+
+  この考え方が理解できるため、自動バインドで解決している
