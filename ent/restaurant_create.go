@@ -85,7 +85,10 @@ func (rc *RestaurantCreate) Save(ctx context.Context) (*Restaurant, error) {
 				return nil, err
 			}
 			rc.mutation = mutation
-			node, err = rc.sqlSave(ctx)
+			if node, err = rc.sqlSave(ctx); err != nil {
+				return nil, err
+			}
+			mutation.id = &node.ID
 			mutation.done = true
 			return node, err
 		})
@@ -133,8 +136,8 @@ func (rc *RestaurantCreate) check() error {
 func (rc *RestaurantCreate) sqlSave(ctx context.Context) (*Restaurant, error) {
 	_node, _spec := rc.createSpec()
 	if err := sqlgraph.CreateNode(ctx, rc.driver, _spec); err != nil {
-		if cerr, ok := isSQLConstraintError(err); ok {
-			err = cerr
+		if sqlgraph.IsConstraintError(err) {
+			err = &ConstraintError{err.Error(), err}
 		}
 		return nil, err
 	}
@@ -238,15 +241,16 @@ func (rcb *RestaurantCreateBulk) Save(ctx context.Context) ([]*Restaurant, error
 				} else {
 					// Invoke the actual operation on the latest mutation in the chain.
 					if err = sqlgraph.BatchCreate(ctx, rcb.driver, &sqlgraph.BatchCreateSpec{Nodes: specs}); err != nil {
-						if cerr, ok := isSQLConstraintError(err); ok {
-							err = cerr
+						if sqlgraph.IsConstraintError(err) {
+							err = &ConstraintError{err.Error(), err}
 						}
 					}
 				}
-				mutation.done = true
 				if err != nil {
 					return nil, err
 				}
+				mutation.id = &nodes[i].ID
+				mutation.done = true
 				id := specs[i].ID.Value.(int64)
 				nodes[i].ID = int(id)
 				return nodes[i], nil

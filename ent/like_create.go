@@ -63,7 +63,10 @@ func (lc *LikeCreate) Save(ctx context.Context) (*Like, error) {
 				return nil, err
 			}
 			lc.mutation = mutation
-			node, err = lc.sqlSave(ctx)
+			if node, err = lc.sqlSave(ctx); err != nil {
+				return nil, err
+			}
+			mutation.id = &node.ID
 			mutation.done = true
 			return node, err
 		})
@@ -100,8 +103,8 @@ func (lc *LikeCreate) check() error {
 func (lc *LikeCreate) sqlSave(ctx context.Context) (*Like, error) {
 	_node, _spec := lc.createSpec()
 	if err := sqlgraph.CreateNode(ctx, lc.driver, _spec); err != nil {
-		if cerr, ok := isSQLConstraintError(err); ok {
-			err = cerr
+		if sqlgraph.IsConstraintError(err) {
+			err = &ConstraintError{err.Error(), err}
 		}
 		return nil, err
 	}
@@ -182,15 +185,16 @@ func (lcb *LikeCreateBulk) Save(ctx context.Context) ([]*Like, error) {
 				} else {
 					// Invoke the actual operation on the latest mutation in the chain.
 					if err = sqlgraph.BatchCreate(ctx, lcb.driver, &sqlgraph.BatchCreateSpec{Nodes: specs}); err != nil {
-						if cerr, ok := isSQLConstraintError(err); ok {
-							err = cerr
+						if sqlgraph.IsConstraintError(err) {
+							err = &ConstraintError{err.Error(), err}
 						}
 					}
 				}
-				mutation.done = true
 				if err != nil {
 					return nil, err
 				}
+				mutation.id = &nodes[i].ID
+				mutation.done = true
 				id := specs[i].ID.Value.(int64)
 				nodes[i].ID = int(id)
 				return nodes[i], nil

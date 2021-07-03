@@ -6,37 +6,25 @@ package graph
 import (
 	"context"
 	"fmt"
-	"strconv"
 
-	model1 "github.com/bamboooo-dev/meshi-api/app/domain/model"
+	"github.com/bamboooo-dev/meshi-api/ent"
 	"github.com/bamboooo-dev/meshi-api/graph/generated"
-	"github.com/bamboooo-dev/meshi-api/graph/model"
 )
 
-func (r *mutationResolver) LikeRestaurant(ctx context.Context, restaurantID string) (*model.Like, error) {
+func (r *mutationResolver) LikeRestaurant(ctx context.Context, restaurantID int) (*ent.Like, error) {
 	restaurantService := r.NewRestaurantService()
-
-	id, err := strconv.Atoi(restaurantID)
-	if err != nil {
-		return nil, err
-	}
-	like, err := restaurantService.Like(ctx, r.db, id)
-	if err != nil {
-		return nil, err
-	}
-
-	return like, nil
+	return restaurantService.Like(ctx, r.db, restaurantID)
 }
 
-func (r *queryResolver) Restaurants(ctx context.Context) ([]*model1.Restaurant, error) {
+func (r *queryResolver) Restaurants(ctx context.Context) ([]*ent.Restaurant, error) {
 	panic(fmt.Errorf("not implemented"))
 }
 
-func (r *queryResolver) NearRestaurants(ctx context.Context) ([]*model1.Restaurant, error) {
+func (r *queryResolver) NearRestaurants(ctx context.Context) ([]*ent.Restaurant, error) {
 	panic(fmt.Errorf("not implemented"))
 }
 
-func (r *queryResolver) FavoriteRestaurants(ctx context.Context) ([]*model1.Restaurant, error) {
+func (r *queryResolver) FavoriteRestaurants(ctx context.Context) ([]*ent.Restaurant, error) {
 	panic(fmt.Errorf("not implemented"))
 }
 

@@ -26,6 +26,8 @@ type Client struct {
 	Like *LikeClient
 	// Restaurant is the client for interacting with the Restaurant builders.
 	Restaurant *RestaurantClient
+	// additional fields for node api
+	tables tables
 }
 
 // NewClient creates a new client configured with the given options.

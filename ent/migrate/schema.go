@@ -45,10 +45,9 @@ var (
 	}
 	// RestaurantsTable holds the schema information for the "restaurants" table.
 	RestaurantsTable = &schema.Table{
-		Name:        "restaurants",
-		Columns:     RestaurantsColumns,
-		PrimaryKey:  []*schema.Column{RestaurantsColumns[0]},
-		ForeignKeys: []*schema.ForeignKey{},
+		Name:       "restaurants",
+		Columns:    RestaurantsColumns,
+		PrimaryKey: []*schema.Column{RestaurantsColumns[0]},
 	}
 	// Tables holds all the tables in the schema.
 	Tables = []*schema.Table{

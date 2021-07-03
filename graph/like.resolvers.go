@@ -7,15 +7,15 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/bamboooo-dev/meshi-api/app/domain/model"
+	"github.com/bamboooo-dev/meshi-api/ent"
 	"github.com/bamboooo-dev/meshi-api/graph/generated"
 )
 
-func (r *userResolver) Name(ctx context.Context, obj *model.User) (string, error) {
+func (r *likeResolver) RestaurantID(ctx context.Context, obj *ent.Like) (int, error) {
 	panic(fmt.Errorf("not implemented"))
 }
 
-// User returns generated.UserResolver implementation.
-func (r *Resolver) User() generated.UserResolver { return &userResolver{r} }
+// Like returns generated.LikeResolver implementation.
+func (r *Resolver) Like() generated.LikeResolver { return &likeResolver{r} }
 
-type userResolver struct{ *Resolver }
+type likeResolver struct{ *Resolver }

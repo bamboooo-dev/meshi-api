@@ -112,8 +112,8 @@ func (m LikeMutation) Tx() (*Tx, error) {
 	return tx, nil
 }
 
-// ID returns the ID value in the mutation. Note that the ID
-// is only available if it was provided to the builder.
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
 func (m *LikeMutation) ID() (id int, exists bool) {
 	if m.id == nil {
 		return
@@ -472,8 +472,8 @@ func (m RestaurantMutation) Tx() (*Tx, error) {
 	return tx, nil
 }
 
-// ID returns the ID value in the mutation. Note that the ID
-// is only available if it was provided to the builder.
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
 func (m *RestaurantMutation) ID() (id int, exists bool) {
 	if m.id == nil {
 		return
@@ -651,6 +651,7 @@ func (m *RestaurantMutation) RemoveLikeIDs(ids ...int) {
 		m.removedlikes = make(map[int]struct{})
 	}
 	for i := range ids {
+		delete(m.likes, ids[i])
 		m.removedlikes[ids[i]] = struct{}{}
 	}
 }

@@ -11,11 +11,6 @@ type Coordinates struct {
 	Longitude float64 `json:"longitude"`
 }
 
-type Like struct {
-	UserID       string `json:"userId"`
-	RestaurantID string `json:"restaurantId"`
-}
-
 type Location struct {
 	Address1   *string `json:"address1"`
 	Address2   *string `json:"address2"`
