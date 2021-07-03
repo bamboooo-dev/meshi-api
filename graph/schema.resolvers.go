@@ -12,12 +12,13 @@ import (
 )
 
 func (r *mutationResolver) LikeRestaurant(ctx context.Context, restaurantID int) (*ent.Like, error) {
-	restaurantService := r.NewRestaurantService()
-	return restaurantService.Like(ctx, r.db, restaurantID)
+	service := r.NewLikeRestaurantService()
+	return service.Call(ctx, r.db, restaurantID)
 }
 
 func (r *queryResolver) Restaurants(ctx context.Context) ([]*ent.Restaurant, error) {
-	panic(fmt.Errorf("not implemented"))
+	service := r.NewListRestaurantService()
+	return service.Call(ctx, r.db)
 }
 
 func (r *queryResolver) NearRestaurants(ctx context.Context) ([]*ent.Restaurant, error) {

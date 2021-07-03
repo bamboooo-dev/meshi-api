@@ -29,6 +29,14 @@ func (r *Resolver) NewLikeRepository() repository.LikeRepository {
 	return mysql.NewLikeRepository(r.logger)
 }
 
-func (r *Resolver) NewRestaurantService() service.RestaurantService {
-	return service.NewRestaurantService(r.logger, r.NewLikeRepository())
+func (r *Resolver) NewRestaurantRepository() repository.RestaurantRepository {
+	return mysql.NewRestaurantRepository(r.logger)
+}
+
+func (r *Resolver) NewLikeRestaurantService() service.LikeRestaurantService {
+	return service.NewLikeRestaurantService(r.logger, r.NewLikeRepository())
+}
+
+func (r *Resolver) NewListRestaurantService() service.ListRestaurantService {
+	return service.NewListRestaurantService(r.logger, r.NewRestaurantRepository())
 }
