@@ -8,4 +8,5 @@ import (
 
 type RestaurantRepository interface {
 	List(ctx context.Context, db *ent.Client) ([]*ent.Restaurant, error)
+	ListByLiker(ctx context.Context, db *ent.Client) ([]*ent.Restaurant, error)
 }

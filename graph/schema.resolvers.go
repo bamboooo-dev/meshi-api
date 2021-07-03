@@ -26,7 +26,8 @@ func (r *queryResolver) NearRestaurants(ctx context.Context) ([]*ent.Restaurant,
 }
 
 func (r *queryResolver) FavoriteRestaurants(ctx context.Context) ([]*ent.Restaurant, error) {
-	panic(fmt.Errorf("not implemented"))
+	service := r.NewListFavoriteRestaurantService()
+	return service.Call(ctx, r.db)
 }
 
 // Mutation returns generated.MutationResolver implementation.

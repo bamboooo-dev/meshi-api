@@ -5,6 +5,9 @@ import (
 
 	"github.com/bamboooo-dev/meshi-api/app/domain/repository"
 	"github.com/bamboooo-dev/meshi-api/ent"
+	"github.com/bamboooo-dev/meshi-api/ent/like"
+	"github.com/bamboooo-dev/meshi-api/ent/restaurant"
+	"github.com/form3tech-oss/jwt-go"
 	"go.uber.org/zap"
 )
 
@@ -16,8 +19,19 @@ func NewRestaurantRepository(l *zap.SugaredLogger) repository.RestaurantReposito
 	return RestaurantRepositoryMysql{logger: l}
 }
 
-func (restaurantRepo RestaurantRepositoryMysql) List(ctx context.Context, db *ent.Client) ([]*ent.Restaurant, error) {
-	return db.Restaurant.
+func (restaurantRepo RestaurantRepositoryMysql) List(ctx context.Context, client *ent.Client) ([]*ent.Restaurant, error) {
+	return client.Restaurant.
 		Query().
+		All(ctx)
+}
+
+func (restaurantRepo RestaurantRepositoryMysql) ListByLiker(ctx context.Context, client *ent.Client) ([]*ent.Restaurant, error) {
+	return client.Restaurant.
+		Query().
+		Where(
+			restaurant.HasLikesWith(
+				like.UserID(ctx.Value("user").(*jwt.Token).Claims.(jwt.MapClaims)["sub"].(string)),
+			),
+		).
 		All(ctx)
 }
