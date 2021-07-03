@@ -44,3 +44,7 @@ func (r *Resolver) NewListRestaurantService() service.ListRestaurantService {
 func (r *Resolver) NewListFavoriteRestaurantService() service.ListFavoriteRestaurantService {
 	return service.NewListFavoriteRestaurantService(r.logger, r.NewRestaurantRepository())
 }
+
+func (r *Resolver) NewCancelLikeService() service.CancelLikeService {
+	return service.NewCancelLikeService(r.logger, r.NewLikeRepository())
+}

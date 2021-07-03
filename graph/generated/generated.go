@@ -71,6 +71,7 @@ type ComplexityRoot struct {
 	}
 
 	Mutation struct {
+		CancelLike     func(childComplexity int, restaurantID int) int
 		LikeRestaurant func(childComplexity int, restaurantID int) int
 	}
 
@@ -98,6 +99,7 @@ type LikeResolver interface {
 }
 type MutationResolver interface {
 	LikeRestaurant(ctx context.Context, restaurantID int) (*ent.Like, error)
+	CancelLike(ctx context.Context, restaurantID int) (int, error)
 }
 type QueryResolver interface {
 	Restaurants(ctx context.Context) ([]*ent.Restaurant, error)
@@ -209,6 +211,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Location.Prefecture(childComplexity), true
+
+	case "Mutation.cancelLike":
+		if e.complexity.Mutation.CancelLike == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_cancelLike_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.CancelLike(childComplexity, args["restaurantId"].(int)), true
 
 	case "Mutation.likeRestaurant":
 		if e.complexity.Mutation.LikeRestaurant == nil {
@@ -414,6 +428,7 @@ type Coordinates {
 
 type Mutation {
   likeRestaurant(restaurantId: ID!): Like!
+  cancelLike(restaurantId: ID!): Int!
 }
 `, BuiltIn: false},
 }
@@ -422,6 +437,21 @@ var parsedSchema = gqlparser.MustLoadSchema(sources...)
 // endregion ************************** generated!.gotpl **************************
 
 // region    ***************************** args.gotpl *****************************
+
+func (ec *executionContext) field_Mutation_cancelLike_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 int
+	if tmp, ok := rawArgs["restaurantId"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("restaurantId"))
+		arg0, err = ec.unmarshalNID2int(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["restaurantId"] = arg0
+	return args, nil
+}
 
 func (ec *executionContext) field_Mutation_likeRestaurant_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
@@ -933,6 +963,48 @@ func (ec *executionContext) _Mutation_likeRestaurant(ctx context.Context, field 
 	res := resTmp.(*ent.Like)
 	fc.Result = res
 	return ec.marshalNLike2ᚖgithubᚗcomᚋbambooooᚑdevᚋmeshiᚑapiᚋentᚐLike(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Mutation_cancelLike(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_cancelLike_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().CancelLike(rctx, args["restaurantId"].(int))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(int)
+	fc.Result = res
+	return ec.marshalNInt2int(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query_restaurants(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -2665,6 +2737,11 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
+		case "cancelLike":
+			out.Values[i] = ec._Mutation_cancelLike(ctx, field)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -3128,6 +3205,21 @@ func (ec *executionContext) unmarshalNID2int(ctx context.Context, v interface{})
 
 func (ec *executionContext) marshalNID2int(ctx context.Context, sel ast.SelectionSet, v int) graphql.Marshaler {
 	res := graphql.MarshalIntID(v)
+	if res == graphql.Null {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+	}
+	return res
+}
+
+func (ec *executionContext) unmarshalNInt2int(ctx context.Context, v interface{}) (int, error) {
+	res, err := graphql.UnmarshalInt(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNInt2int(ctx context.Context, sel ast.SelectionSet, v int) graphql.Marshaler {
+	res := graphql.MarshalInt(v)
 	if res == graphql.Null {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "must not be null")

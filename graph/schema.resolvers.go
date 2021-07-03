@@ -16,6 +16,11 @@ func (r *mutationResolver) LikeRestaurant(ctx context.Context, restaurantID int)
 	return service.Call(ctx, r.db, restaurantID)
 }
 
+func (r *mutationResolver) CancelLike(ctx context.Context, restaurantID int) (int, error) {
+	service := r.NewCancelLikeService()
+	return service.Call(ctx, r.db, restaurantID)
+}
+
 func (r *queryResolver) Restaurants(ctx context.Context) ([]*ent.Restaurant, error) {
 	service := r.NewListRestaurantService()
 	return service.Call(ctx, r.db)
