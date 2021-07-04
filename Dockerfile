@@ -8,7 +8,7 @@ COPY go.mod /meshi-api/
 RUN go mod download
 
 COPY . /meshi-api
-RUN GOOS=linux GOARCH=amd64 CGO_ENABLED=0 make
+RUN GOOS=linux GOARCH=arm64 CGO_ENABLED=0 make
 
 FROM alpine:3.14
 
