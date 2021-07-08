@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - yamagai/modify-cd
 
 jobs:
   build-image:
@@ -27,23 +28,28 @@ jobs:
         uses: docker/build-push-action@v2
         with:
           context: .
+          platforms: linux/arm64,linux/amd64
           push: true
           tags: |
-            bamboooo/meshi-api:latest
+            bamboooo/meshi-api:$GITHUB_SHA
 
   deploy:
     needs: build-image
 
-    name: Deploy to dev server
+    name: Deploy to cluster
     runs-on: ubuntu-latest
 
     steps:
-      - name: Deploy to dev
-        run: |
-          echo "$SSH_KEY" > secret_key
-          chmod 600 secret_key
-          ssh -o StrictHostKeyChecking=no ${ORACLE_USER}@${ORACLE_HOST} -i secret_key "cd ~/meshi-api && git pull origin main && docker-compose -f docker-compose-prod.yaml stop && docker-compose -f docker-compose-prod.yaml pull api && docker-compose -f docker-compose-prod.yaml up -d"
-        env:
-          SSH_KEY: ${{ secrets.ORG_YAMAGAI_SSH_KEY }}
-          ORACLE_USER: ${{ secrets.ORG_WISTERIA_USER }}
-          ORACLE_HOST: ${{ secrets.ORG_WISTERIA_HOST }}
+      - name: Deploy to roots
+        uses: steebchen/kubectl@v2.0.0
+        with:
+          config: ${{ secrets.ORG_ROOTS_KUBE_CONFIG }}
+          version: v1.21.2
+          command: set image --record deployment/meshi-api meshi-api=bamboooo/meshi-api:$GITHUB_SHA
+
+      - name: verify deployment
+        uses: steebchen/kubectl@v2.0.0
+        with:
+          config: ${{ secrets.ORG_ROOTS_KUBE_CONFIG }}
+          version: v1.21.2
+          command: rollout status deployment/meshi-api
