@@ -77,8 +77,8 @@ type ComplexityRoot struct {
 
 	Query struct {
 		FavoriteRestaurants func(childComplexity int) int
-		NearRestaurants     func(childComplexity int) int
 		Restaurants         func(childComplexity int) int
+		Search              func(childComplexity int, latitude float64, longitude float64) int
 	}
 
 	Restaurant struct {
@@ -103,7 +103,7 @@ type MutationResolver interface {
 }
 type QueryResolver interface {
 	Restaurants(ctx context.Context) ([]*ent.Restaurant, error)
-	NearRestaurants(ctx context.Context) ([]*ent.Restaurant, error)
+	Search(ctx context.Context, latitude float64, longitude float64) ([]*ent.Restaurant, error)
 	FavoriteRestaurants(ctx context.Context) ([]*ent.Restaurant, error)
 }
 type RestaurantResolver interface {
@@ -243,19 +243,24 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Query.FavoriteRestaurants(childComplexity), true
 
-	case "Query.nearRestaurants":
-		if e.complexity.Query.NearRestaurants == nil {
-			break
-		}
-
-		return e.complexity.Query.NearRestaurants(childComplexity), true
-
 	case "Query.restaurants":
 		if e.complexity.Query.Restaurants == nil {
 			break
 		}
 
 		return e.complexity.Query.Restaurants(childComplexity), true
+
+	case "Query.search":
+		if e.complexity.Query.Search == nil {
+			break
+		}
+
+		args, err := ec.field_Query_search_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.Search(childComplexity, args["latitude"].(float64), args["longitude"].(float64)), true
 
 	case "Restaurant.categories":
 		if e.complexity.Restaurant.Categories == nil {
@@ -422,7 +427,7 @@ type Coordinates {
 `, BuiltIn: false},
 	{Name: "graph/schema/schema.graphqls", Input: `type Query {
   restaurants: [Restaurant!]!
-  nearRestaurants: [Restaurant!]!
+  search(latitude: Float!, longitude: Float!): [Restaurant!]!
   favoriteRestaurants: [Restaurant!]!
 }
 
@@ -480,6 +485,30 @@ func (ec *executionContext) field_Query___type_args(ctx context.Context, rawArgs
 		}
 	}
 	args["name"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_search_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 float64
+	if tmp, ok := rawArgs["latitude"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("latitude"))
+		arg0, err = ec.unmarshalNFloat2float64(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["latitude"] = arg0
+	var arg1 float64
+	if tmp, ok := rawArgs["longitude"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("longitude"))
+		arg1, err = ec.unmarshalNFloat2float64(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["longitude"] = arg1
 	return args, nil
 }
 
@@ -1042,7 +1071,7 @@ func (ec *executionContext) _Query_restaurants(ctx context.Context, field graphq
 	return ec.marshalNRestaurant2ᚕᚖgithubᚗcomᚋbambooooᚑdevᚋmeshiᚑapiᚋentᚐRestaurantᚄ(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Query_nearRestaurants(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+func (ec *executionContext) _Query_search(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -1058,9 +1087,16 @@ func (ec *executionContext) _Query_nearRestaurants(ctx context.Context, field gr
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Query_search_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().NearRestaurants(rctx)
+		return ec.resolvers.Query().Search(rctx, args["latitude"].(float64), args["longitude"].(float64))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -2782,7 +2818,7 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 				}
 				return res
 			})
-		case "nearRestaurants":
+		case "search":
 			field := field
 			out.Concurrently(i, func() (res graphql.Marshaler) {
 				defer func() {
@@ -2790,7 +2826,7 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 						ec.Error(ctx, ec.Recover(ctx, r))
 					}
 				}()
-				res = ec._Query_nearRestaurants(ctx, field)
+				res = ec._Query_search(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&invalids, 1)
 				}

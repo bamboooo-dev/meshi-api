@@ -21,7 +21,4 @@ lint:
 	golangci-lint run --timeout 5m
 	
 gen-schema:
-	gqlgen generate
-
-gen-meshi-db-schema:
-	go generate ./ent
+	go generate ./...

@@ -1,6 +1,6 @@
 type Query {
   restaurants: [Restaurant!]!
-  nearRestaurants: [Restaurant!]!
+  search(latitude: Float!, longitude: Float!): [Restaurant!]!
   favoriteRestaurants: [Restaurant!]!
 }
 

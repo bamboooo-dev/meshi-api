@@ -26,7 +26,7 @@ func (r *queryResolver) Restaurants(ctx context.Context) ([]*ent.Restaurant, err
 	return service.Call(ctx, r.db)
 }
 
-func (r *queryResolver) NearRestaurants(ctx context.Context) ([]*ent.Restaurant, error) {
+func (r *queryResolver) Search(ctx context.Context, latitude float64, longitude float64) ([]*ent.Restaurant, error) {
 	panic(fmt.Errorf("not implemented"))
 }
 
