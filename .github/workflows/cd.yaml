@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-      - yamagai/modify-cd
 
 jobs:
   build-image:
