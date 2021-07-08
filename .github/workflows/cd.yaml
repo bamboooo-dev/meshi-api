@@ -12,6 +12,10 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Set commit hash
+        run: echo "::set-output name=COMMIT_HASH::${GITHUB_SHA}"
+        id: set-commit-hash
+
       - name: checkout
         uses: actions/checkout@v2
 
@@ -31,7 +35,7 @@ jobs:
           platforms: linux/arm64,linux/amd64
           push: true
           tags: |
-            bamboooo/meshi-api:$GITHUB_SHA
+            bamboooo/meshi-api:${{ steps.set-commit-hash.outputs.COMMIT_HASH }}
 
   deploy:
     needs: build-image
