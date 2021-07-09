@@ -110,8 +110,8 @@ func (rq *RestaurantQuery) FirstX(ctx context.Context) *Restaurant {
 
 // FirstID returns the first Restaurant ID from the query.
 // Returns a *NotFoundError when no Restaurant ID was found.
-func (rq *RestaurantQuery) FirstID(ctx context.Context) (id int, err error) {
-	var ids []int
+func (rq *RestaurantQuery) FirstID(ctx context.Context) (id string, err error) {
+	var ids []string
 	if ids, err = rq.Limit(1).IDs(ctx); err != nil {
 		return
 	}
@@ -123,7 +123,7 @@ func (rq *RestaurantQuery) FirstID(ctx context.Context) (id int, err error) {
 }
 
 // FirstIDX is like FirstID, but panics if an error occurs.
-func (rq *RestaurantQuery) FirstIDX(ctx context.Context) int {
+func (rq *RestaurantQuery) FirstIDX(ctx context.Context) string {
 	id, err := rq.FirstID(ctx)
 	if err != nil && !IsNotFound(err) {
 		panic(err)
@@ -161,8 +161,8 @@ func (rq *RestaurantQuery) OnlyX(ctx context.Context) *Restaurant {
 // OnlyID is like Only, but returns the only Restaurant ID in the query.
 // Returns a *NotSingularError when exactly one Restaurant ID is not found.
 // Returns a *NotFoundError when no entities are found.
-func (rq *RestaurantQuery) OnlyID(ctx context.Context) (id int, err error) {
-	var ids []int
+func (rq *RestaurantQuery) OnlyID(ctx context.Context) (id string, err error) {
+	var ids []string
 	if ids, err = rq.Limit(2).IDs(ctx); err != nil {
 		return
 	}
@@ -178,7 +178,7 @@ func (rq *RestaurantQuery) OnlyID(ctx context.Context) (id int, err error) {
 }
 
 // OnlyIDX is like OnlyID, but panics if an error occurs.
-func (rq *RestaurantQuery) OnlyIDX(ctx context.Context) int {
+func (rq *RestaurantQuery) OnlyIDX(ctx context.Context) string {
 	id, err := rq.OnlyID(ctx)
 	if err != nil {
 		panic(err)
@@ -204,8 +204,8 @@ func (rq *RestaurantQuery) AllX(ctx context.Context) []*Restaurant {
 }
 
 // IDs executes the query and returns a list of Restaurant IDs.
-func (rq *RestaurantQuery) IDs(ctx context.Context) ([]int, error) {
-	var ids []int
+func (rq *RestaurantQuery) IDs(ctx context.Context) ([]string, error) {
+	var ids []string
 	if err := rq.Select(restaurant.FieldID).Scan(ctx, &ids); err != nil {
 		return nil, err
 	}
@@ -213,7 +213,7 @@ func (rq *RestaurantQuery) IDs(ctx context.Context) ([]int, error) {
 }
 
 // IDsX is like IDs, but panics if an error occurs.
-func (rq *RestaurantQuery) IDsX(ctx context.Context) []int {
+func (rq *RestaurantQuery) IDsX(ctx context.Context) []string {
 	ids, err := rq.IDs(ctx)
 	if err != nil {
 		panic(err)
@@ -376,7 +376,7 @@ func (rq *RestaurantQuery) sqlAll(ctx context.Context) ([]*Restaurant, error) {
 
 	if query := rq.withLikes; query != nil {
 		fks := make([]driver.Value, 0, len(nodes))
-		nodeids := make(map[int]*Restaurant)
+		nodeids := make(map[string]*Restaurant)
 		for i := range nodes {
 			fks = append(fks, nodes[i].ID)
 			nodeids[nodes[i].ID] = nodes[i]
@@ -425,7 +425,7 @@ func (rq *RestaurantQuery) querySpec() *sqlgraph.QuerySpec {
 			Table:   restaurant.Table,
 			Columns: restaurant.Columns,
 			ID: &sqlgraph.FieldSpec{
-				Type:   field.TypeInt,
+				Type:   field.TypeString,
 				Column: restaurant.FieldID,
 			},
 		},

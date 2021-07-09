@@ -3,6 +3,7 @@
 package ent
 
 import (
+	"github.com/bamboooo-dev/meshi-api/ent/like"
 	"github.com/bamboooo-dev/meshi-api/ent/restaurant"
 	"github.com/bamboooo-dev/meshi-api/ent/schema"
 )
@@ -11,10 +12,20 @@ import (
 // (default values, validators, hooks and policies) and stitches it
 // to their package variables.
 func init() {
+	likeFields := schema.Like{}.Fields()
+	_ = likeFields
+	// likeDescID is the schema descriptor for id field.
+	likeDescID := likeFields[0].Descriptor()
+	// like.IDValidator is a validator for the "id" field. It is called by the builders before save.
+	like.IDValidator = likeDescID.Validators[0].(func(string) error)
 	restaurantFields := schema.Restaurant{}.Fields()
 	_ = restaurantFields
 	// restaurantDescName is the schema descriptor for name field.
-	restaurantDescName := restaurantFields[0].Descriptor()
+	restaurantDescName := restaurantFields[1].Descriptor()
 	// restaurant.NameValidator is a validator for the "name" field. It is called by the builders before save.
 	restaurant.NameValidator = restaurantDescName.Validators[0].(func(string) error)
+	// restaurantDescID is the schema descriptor for id field.
+	restaurantDescID := restaurantFields[0].Descriptor()
+	// restaurant.IDValidator is a validator for the "id" field. It is called by the builders before save.
+	restaurant.IDValidator = restaurantDescID.Validators[0].(func(string) error)
 }

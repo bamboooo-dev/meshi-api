@@ -145,8 +145,8 @@ type PageInfo struct {
 
 // Cursor of an edge type.
 type Cursor struct {
-	ID    int   `msgpack:"i"`
-	Value Value `msgpack:"v,omitempty"`
+	ID    string `msgpack:"i"`
+	Value Value  `msgpack:"v,omitempty"`
 }
 
 // MarshalGQL implements graphql.Marshaler interface.

@@ -7,6 +7,6 @@ import (
 )
 
 type LikeRepository interface {
-	Create(ctx context.Context, db *ent.Client, restaurantID int) (*ent.Like, error)
-	Delete(ctx context.Context, db *ent.Client, restaurantID int) (int, error)
+	Create(ctx context.Context, db *ent.Client, restaurantID string) (*ent.Like, error)
+	Delete(ctx context.Context, db *ent.Client, restaurantID string) (int, error)
 }

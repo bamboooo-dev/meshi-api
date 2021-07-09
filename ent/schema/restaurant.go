@@ -14,6 +14,7 @@ type Restaurant struct {
 // Fields of the Restaurant.
 func (Restaurant) Fields() []ent.Field {
 	return []ent.Field{
+		field.String("id").NotEmpty().Unique().Immutable(),
 		field.String("name").NotEmpty(),
 		field.String("url"),
 		field.String("phone"),

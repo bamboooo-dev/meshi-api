@@ -11,7 +11,7 @@ import (
 	"github.com/bamboooo-dev/meshi-api/graph/generated"
 )
 
-func (r *likeResolver) RestaurantID(ctx context.Context, obj *ent.Like) (int, error) {
+func (r *likeResolver) RestaurantID(ctx context.Context, obj *ent.Like) (string, error) {
 	panic(fmt.Errorf("not implemented"))
 }
 

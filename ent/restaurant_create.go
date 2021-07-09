@@ -44,15 +44,21 @@ func (rc *RestaurantCreate) SetPrice(s string) *RestaurantCreate {
 	return rc
 }
 
+// SetID sets the "id" field.
+func (rc *RestaurantCreate) SetID(s string) *RestaurantCreate {
+	rc.mutation.SetID(s)
+	return rc
+}
+
 // AddLikeIDs adds the "likes" edge to the Like entity by IDs.
-func (rc *RestaurantCreate) AddLikeIDs(ids ...int) *RestaurantCreate {
+func (rc *RestaurantCreate) AddLikeIDs(ids ...string) *RestaurantCreate {
 	rc.mutation.AddLikeIDs(ids...)
 	return rc
 }
 
 // AddLikes adds the "likes" edges to the Like entity.
 func (rc *RestaurantCreate) AddLikes(l ...*Like) *RestaurantCreate {
-	ids := make([]int, len(l))
+	ids := make([]string, len(l))
 	for i := range l {
 		ids[i] = l[i].ID
 	}
@@ -130,6 +136,11 @@ func (rc *RestaurantCreate) check() error {
 	if _, ok := rc.mutation.Price(); !ok {
 		return &ValidationError{Name: "price", err: errors.New("ent: missing required field \"price\"")}
 	}
+	if v, ok := rc.mutation.ID(); ok {
+		if err := restaurant.IDValidator(v); err != nil {
+			return &ValidationError{Name: "id", err: fmt.Errorf("ent: validator failed for field \"id\": %w", err)}
+		}
+	}
 	return nil
 }
 
@@ -141,8 +152,6 @@ func (rc *RestaurantCreate) sqlSave(ctx context.Context) (*Restaurant, error) {
 		}
 		return nil, err
 	}
-	id := _spec.ID.Value.(int64)
-	_node.ID = int(id)
 	return _node, nil
 }
 
@@ -152,11 +161,15 @@ func (rc *RestaurantCreate) createSpec() (*Restaurant, *sqlgraph.CreateSpec) {
 		_spec = &sqlgraph.CreateSpec{
 			Table: restaurant.Table,
 			ID: &sqlgraph.FieldSpec{
-				Type:   field.TypeInt,
+				Type:   field.TypeString,
 				Column: restaurant.FieldID,
 			},
 		}
 	)
+	if id, ok := rc.mutation.ID(); ok {
+		_node.ID = id
+		_spec.ID.Value = id
+	}
 	if value, ok := rc.mutation.Name(); ok {
 		_spec.Fields = append(_spec.Fields, &sqlgraph.FieldSpec{
 			Type:   field.TypeString,
@@ -198,7 +211,7 @@ func (rc *RestaurantCreate) createSpec() (*Restaurant, *sqlgraph.CreateSpec) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: &sqlgraph.FieldSpec{
-					Type:   field.TypeInt,
+					Type:   field.TypeString,
 					Column: like.FieldID,
 				},
 			},
@@ -251,8 +264,6 @@ func (rcb *RestaurantCreateBulk) Save(ctx context.Context) ([]*Restaurant, error
 				}
 				mutation.id = &nodes[i].ID
 				mutation.done = true
-				id := specs[i].ID.Value.(int64)
-				nodes[i].ID = int(id)
 				return nodes[i], nil
 			})
 			for i := len(builder.hooks) - 1; i >= 0; i-- {

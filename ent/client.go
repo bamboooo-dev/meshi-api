@@ -26,8 +26,6 @@ type Client struct {
 	Like *LikeClient
 	// Restaurant is the client for interacting with the Restaurant builders.
 	Restaurant *RestaurantClient
-	// additional fields for node api
-	tables tables
 }
 
 // NewClient creates a new client configured with the given options.
@@ -171,7 +169,7 @@ func (c *LikeClient) UpdateOne(l *Like) *LikeUpdateOne {
 }
 
 // UpdateOneID returns an update builder for the given id.
-func (c *LikeClient) UpdateOneID(id int) *LikeUpdateOne {
+func (c *LikeClient) UpdateOneID(id string) *LikeUpdateOne {
 	mutation := newLikeMutation(c.config, OpUpdateOne, withLikeID(id))
 	return &LikeUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
 }
@@ -188,7 +186,7 @@ func (c *LikeClient) DeleteOne(l *Like) *LikeDeleteOne {
 }
 
 // DeleteOneID returns a delete builder for the given id.
-func (c *LikeClient) DeleteOneID(id int) *LikeDeleteOne {
+func (c *LikeClient) DeleteOneID(id string) *LikeDeleteOne {
 	builder := c.Delete().Where(like.ID(id))
 	builder.mutation.id = &id
 	builder.mutation.op = OpDeleteOne
@@ -203,12 +201,12 @@ func (c *LikeClient) Query() *LikeQuery {
 }
 
 // Get returns a Like entity by its id.
-func (c *LikeClient) Get(ctx context.Context, id int) (*Like, error) {
+func (c *LikeClient) Get(ctx context.Context, id string) (*Like, error) {
 	return c.Query().Where(like.ID(id)).Only(ctx)
 }
 
 // GetX is like Get, but panics if an error occurs.
-func (c *LikeClient) GetX(ctx context.Context, id int) *Like {
+func (c *LikeClient) GetX(ctx context.Context, id string) *Like {
 	obj, err := c.Get(ctx, id)
 	if err != nil {
 		panic(err)
@@ -277,7 +275,7 @@ func (c *RestaurantClient) UpdateOne(r *Restaurant) *RestaurantUpdateOne {
 }
 
 // UpdateOneID returns an update builder for the given id.
-func (c *RestaurantClient) UpdateOneID(id int) *RestaurantUpdateOne {
+func (c *RestaurantClient) UpdateOneID(id string) *RestaurantUpdateOne {
 	mutation := newRestaurantMutation(c.config, OpUpdateOne, withRestaurantID(id))
 	return &RestaurantUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
 }
@@ -294,7 +292,7 @@ func (c *RestaurantClient) DeleteOne(r *Restaurant) *RestaurantDeleteOne {
 }
 
 // DeleteOneID returns a delete builder for the given id.
-func (c *RestaurantClient) DeleteOneID(id int) *RestaurantDeleteOne {
+func (c *RestaurantClient) DeleteOneID(id string) *RestaurantDeleteOne {
 	builder := c.Delete().Where(restaurant.ID(id))
 	builder.mutation.id = &id
 	builder.mutation.op = OpDeleteOne
@@ -309,12 +307,12 @@ func (c *RestaurantClient) Query() *RestaurantQuery {
 }
 
 // Get returns a Restaurant entity by its id.
-func (c *RestaurantClient) Get(ctx context.Context, id int) (*Restaurant, error) {
+func (c *RestaurantClient) Get(ctx context.Context, id string) (*Restaurant, error) {
 	return c.Query().Where(restaurant.ID(id)).Only(ctx)
 }
 
 // GetX is like Get, but panics if an error occurs.
-func (c *RestaurantClient) GetX(ctx context.Context, id int) *Restaurant {
+func (c *RestaurantClient) GetX(ctx context.Context, id string) *Restaurant {
 	obj, err := c.Get(ctx, id)
 	if err != nil {
 		panic(err)

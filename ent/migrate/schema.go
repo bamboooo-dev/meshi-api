@@ -10,9 +10,9 @@ import (
 var (
 	// LikesColumns holds the columns for the "likes" table.
 	LikesColumns = []*schema.Column{
-		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "id", Type: field.TypeString, Unique: true},
 		{Name: "user_id", Type: field.TypeString},
-		{Name: "restaurant_likes", Type: field.TypeInt, Nullable: true},
+		{Name: "restaurant_likes", Type: field.TypeString, Nullable: true},
 	}
 	// LikesTable holds the schema information for the "likes" table.
 	LikesTable = &schema.Table{
@@ -37,7 +37,7 @@ var (
 	}
 	// RestaurantsColumns holds the columns for the "restaurants" table.
 	RestaurantsColumns = []*schema.Column{
-		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "id", Type: field.TypeString, Unique: true},
 		{Name: "name", Type: field.TypeString},
 		{Name: "url", Type: field.TypeString},
 		{Name: "phone", Type: field.TypeString},

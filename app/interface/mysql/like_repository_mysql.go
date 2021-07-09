@@ -19,7 +19,7 @@ func NewLikeRepository(l *zap.SugaredLogger) repository.LikeRepository {
 	return LikeRepositoryMysql{logger: l}
 }
 
-func (likeRepo LikeRepositoryMysql) Create(ctx context.Context, db *ent.Client, restaurantID int) (*ent.Like, error) {
+func (likeRepo LikeRepositoryMysql) Create(ctx context.Context, db *ent.Client, restaurantID string) (*ent.Like, error) {
 	return db.Like.
 		Create().
 		SetUserID(ctx.Value("user").(*jwt.Token).Claims.(jwt.MapClaims)["sub"].(string)).
@@ -27,7 +27,7 @@ func (likeRepo LikeRepositoryMysql) Create(ctx context.Context, db *ent.Client, 
 		Save(ctx)
 }
 
-func (likeRepo LikeRepositoryMysql) Delete(ctx context.Context, db *ent.Client, restaurantID int) (int, error) {
+func (likeRepo LikeRepositoryMysql) Delete(ctx context.Context, db *ent.Client, restaurantID string) (int, error) {
 	return db.Like.
 		Delete().
 		Where(

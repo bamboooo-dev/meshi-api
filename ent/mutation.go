@@ -32,10 +32,10 @@ type LikeMutation struct {
 	config
 	op                Op
 	typ               string
-	id                *int
+	id                *string
 	user_id           *string
 	clearedFields     map[string]struct{}
-	restaurant        *int
+	restaurant        *string
 	clearedrestaurant bool
 	done              bool
 	oldValue          func(context.Context) (*Like, error)
@@ -62,7 +62,7 @@ func newLikeMutation(c config, op Op, opts ...likeOption) *LikeMutation {
 }
 
 // withLikeID sets the ID field of the mutation.
-func withLikeID(id int) likeOption {
+func withLikeID(id string) likeOption {
 	return func(m *LikeMutation) {
 		var (
 			err   error
@@ -112,9 +112,15 @@ func (m LikeMutation) Tx() (*Tx, error) {
 	return tx, nil
 }
 
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of Like entities.
+func (m *LikeMutation) SetID(id string) {
+	m.id = &id
+}
+
 // ID returns the ID value in the mutation. Note that the ID is only available
 // if it was provided to the builder or after it was returned from the database.
-func (m *LikeMutation) ID() (id int, exists bool) {
+func (m *LikeMutation) ID() (id string, exists bool) {
 	if m.id == nil {
 		return
 	}
@@ -158,7 +164,7 @@ func (m *LikeMutation) ResetUserID() {
 }
 
 // SetRestaurantID sets the "restaurant" edge to the Restaurant entity by id.
-func (m *LikeMutation) SetRestaurantID(id int) {
+func (m *LikeMutation) SetRestaurantID(id string) {
 	m.restaurant = &id
 }
 
@@ -173,7 +179,7 @@ func (m *LikeMutation) RestaurantCleared() bool {
 }
 
 // RestaurantID returns the "restaurant" edge ID in the mutation.
-func (m *LikeMutation) RestaurantID() (id int, exists bool) {
+func (m *LikeMutation) RestaurantID() (id string, exists bool) {
 	if m.restaurant != nil {
 		return *m.restaurant, true
 	}
@@ -183,7 +189,7 @@ func (m *LikeMutation) RestaurantID() (id int, exists bool) {
 // RestaurantIDs returns the "restaurant" edge IDs in the mutation.
 // Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
 // RestaurantID instead. It exists only for internal usage by the builders.
-func (m *LikeMutation) RestaurantIDs() (ids []int) {
+func (m *LikeMutation) RestaurantIDs() (ids []string) {
 	if id := m.restaurant; id != nil {
 		ids = append(ids, *id)
 	}
@@ -388,14 +394,14 @@ type RestaurantMutation struct {
 	config
 	op            Op
 	typ           string
-	id            *int
+	id            *string
 	name          *string
 	url           *string
 	phone         *string
 	price         *string
 	clearedFields map[string]struct{}
-	likes         map[int]struct{}
-	removedlikes  map[int]struct{}
+	likes         map[string]struct{}
+	removedlikes  map[string]struct{}
 	clearedlikes  bool
 	done          bool
 	oldValue      func(context.Context) (*Restaurant, error)
@@ -422,7 +428,7 @@ func newRestaurantMutation(c config, op Op, opts ...restaurantOption) *Restauran
 }
 
 // withRestaurantID sets the ID field of the mutation.
-func withRestaurantID(id int) restaurantOption {
+func withRestaurantID(id string) restaurantOption {
 	return func(m *RestaurantMutation) {
 		var (
 			err   error
@@ -472,9 +478,15 @@ func (m RestaurantMutation) Tx() (*Tx, error) {
 	return tx, nil
 }
 
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of Restaurant entities.
+func (m *RestaurantMutation) SetID(id string) {
+	m.id = &id
+}
+
 // ID returns the ID value in the mutation. Note that the ID is only available
 // if it was provided to the builder or after it was returned from the database.
-func (m *RestaurantMutation) ID() (id int, exists bool) {
+func (m *RestaurantMutation) ID() (id string, exists bool) {
 	if m.id == nil {
 		return
 	}
@@ -626,9 +638,9 @@ func (m *RestaurantMutation) ResetPrice() {
 }
 
 // AddLikeIDs adds the "likes" edge to the Like entity by ids.
-func (m *RestaurantMutation) AddLikeIDs(ids ...int) {
+func (m *RestaurantMutation) AddLikeIDs(ids ...string) {
 	if m.likes == nil {
-		m.likes = make(map[int]struct{})
+		m.likes = make(map[string]struct{})
 	}
 	for i := range ids {
 		m.likes[ids[i]] = struct{}{}
@@ -646,9 +658,9 @@ func (m *RestaurantMutation) LikesCleared() bool {
 }
 
 // RemoveLikeIDs removes the "likes" edge to the Like entity by IDs.
-func (m *RestaurantMutation) RemoveLikeIDs(ids ...int) {
+func (m *RestaurantMutation) RemoveLikeIDs(ids ...string) {
 	if m.removedlikes == nil {
-		m.removedlikes = make(map[int]struct{})
+		m.removedlikes = make(map[string]struct{})
 	}
 	for i := range ids {
 		delete(m.likes, ids[i])
@@ -657,7 +669,7 @@ func (m *RestaurantMutation) RemoveLikeIDs(ids ...int) {
 }
 
 // RemovedLikes returns the removed IDs of the "likes" edge to the Like entity.
-func (m *RestaurantMutation) RemovedLikesIDs() (ids []int) {
+func (m *RestaurantMutation) RemovedLikesIDs() (ids []string) {
 	for id := range m.removedlikes {
 		ids = append(ids, id)
 	}
@@ -665,7 +677,7 @@ func (m *RestaurantMutation) RemovedLikesIDs() (ids []int) {
 }
 
 // LikesIDs returns the "likes" edge IDs in the mutation.
-func (m *RestaurantMutation) LikesIDs() (ids []int) {
+func (m *RestaurantMutation) LikesIDs() (ids []string) {
 	for id := range m.likes {
 		ids = append(ids, id)
 	}

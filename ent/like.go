@@ -15,13 +15,13 @@ import (
 type Like struct {
 	config `json:"-"`
 	// ID of the ent.
-	ID int `json:"id,omitempty"`
+	ID string `json:"id,omitempty"`
 	// UserID holds the value of the "user_id" field.
 	UserID string `json:"user_id,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the LikeQuery when eager-loading is set.
 	Edges            LikeEdges `json:"edges"`
-	restaurant_likes *int
+	restaurant_likes *string
 }
 
 // LikeEdges holds the relations/edges for other nodes in the graph.
@@ -52,12 +52,10 @@ func (*Like) scanValues(columns []string) ([]interface{}, error) {
 	values := make([]interface{}, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case like.FieldID:
-			values[i] = new(sql.NullInt64)
-		case like.FieldUserID:
+		case like.FieldID, like.FieldUserID:
 			values[i] = new(sql.NullString)
 		case like.ForeignKeys[0]: // restaurant_likes
-			values[i] = new(sql.NullInt64)
+			values[i] = new(sql.NullString)
 		default:
 			return nil, fmt.Errorf("unexpected column %q for type Like", columns[i])
 		}
@@ -74,11 +72,11 @@ func (l *Like) assignValues(columns []string, values []interface{}) error {
 	for i := range columns {
 		switch columns[i] {
 		case like.FieldID:
-			value, ok := values[i].(*sql.NullInt64)
-			if !ok {
-				return fmt.Errorf("unexpected type %T for field id", value)
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field id", values[i])
+			} else if value.Valid {
+				l.ID = value.String
 			}
-			l.ID = int(value.Int64)
 		case like.FieldUserID:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field user_id", values[i])
@@ -86,11 +84,11 @@ func (l *Like) assignValues(columns []string, values []interface{}) error {
 				l.UserID = value.String
 			}
 		case like.ForeignKeys[0]:
-			if value, ok := values[i].(*sql.NullInt64); !ok {
-				return fmt.Errorf("unexpected type %T for edge-field restaurant_likes", value)
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field restaurant_likes", values[i])
 			} else if value.Valid {
-				l.restaurant_likes = new(int)
-				*l.restaurant_likes = int(value.Int64)
+				l.restaurant_likes = new(string)
+				*l.restaurant_likes = value.String
 			}
 		}
 	}

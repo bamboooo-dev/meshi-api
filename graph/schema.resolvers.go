@@ -11,12 +11,12 @@ import (
 	"github.com/bamboooo-dev/meshi-api/graph/generated"
 )
 
-func (r *mutationResolver) LikeRestaurant(ctx context.Context, restaurantID int) (*ent.Like, error) {
+func (r *mutationResolver) LikeRestaurant(ctx context.Context, restaurantID string) (*ent.Like, error) {
 	service := r.NewLikeRestaurantService()
 	return service.Call(ctx, r.db, restaurantID)
 }
 
-func (r *mutationResolver) CancelLike(ctx context.Context, restaurantID int) (int, error) {
+func (r *mutationResolver) CancelLike(ctx context.Context, restaurantID string) (int, error) {
 	service := r.NewCancelLikeService()
 	return service.Call(ctx, r.db, restaurantID)
 }

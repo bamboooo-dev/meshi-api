@@ -71,8 +71,8 @@ type ComplexityRoot struct {
 	}
 
 	Mutation struct {
-		CancelLike     func(childComplexity int, restaurantID int) int
-		LikeRestaurant func(childComplexity int, restaurantID int) int
+		CancelLike     func(childComplexity int, restaurantID string) int
+		LikeRestaurant func(childComplexity int, restaurantID string) int
 	}
 
 	Query struct {
@@ -95,11 +95,11 @@ type ComplexityRoot struct {
 }
 
 type LikeResolver interface {
-	RestaurantID(ctx context.Context, obj *ent.Like) (int, error)
+	RestaurantID(ctx context.Context, obj *ent.Like) (string, error)
 }
 type MutationResolver interface {
-	LikeRestaurant(ctx context.Context, restaurantID int) (*ent.Like, error)
-	CancelLike(ctx context.Context, restaurantID int) (int, error)
+	LikeRestaurant(ctx context.Context, restaurantID string) (*ent.Like, error)
+	CancelLike(ctx context.Context, restaurantID string) (int, error)
 }
 type QueryResolver interface {
 	Restaurants(ctx context.Context) ([]*ent.Restaurant, error)
@@ -222,7 +222,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Mutation.CancelLike(childComplexity, args["restaurantId"].(int)), true
+		return e.complexity.Mutation.CancelLike(childComplexity, args["restaurantId"].(string)), true
 
 	case "Mutation.likeRestaurant":
 		if e.complexity.Mutation.LikeRestaurant == nil {
@@ -234,7 +234,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Mutation.LikeRestaurant(childComplexity, args["restaurantId"].(int)), true
+		return e.complexity.Mutation.LikeRestaurant(childComplexity, args["restaurantId"].(string)), true
 
 	case "Query.favoriteRestaurants":
 		if e.complexity.Query.FavoriteRestaurants == nil {
@@ -446,10 +446,10 @@ var parsedSchema = gqlparser.MustLoadSchema(sources...)
 func (ec *executionContext) field_Mutation_cancelLike_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
-	var arg0 int
+	var arg0 string
 	if tmp, ok := rawArgs["restaurantId"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("restaurantId"))
-		arg0, err = ec.unmarshalNID2int(ctx, tmp)
+		arg0, err = ec.unmarshalNID2string(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -461,10 +461,10 @@ func (ec *executionContext) field_Mutation_cancelLike_args(ctx context.Context, 
 func (ec *executionContext) field_Mutation_likeRestaurant_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
-	var arg0 int
+	var arg0 string
 	if tmp, ok := rawArgs["restaurantId"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("restaurantId"))
-		arg0, err = ec.unmarshalNID2int(ctx, tmp)
+		arg0, err = ec.unmarshalNID2string(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -685,9 +685,9 @@ func (ec *executionContext) _Like_id(ctx context.Context, field graphql.Collecte
 		}
 		return graphql.Null
 	}
-	res := resTmp.(int)
+	res := resTmp.(string)
 	fc.Result = res
-	return ec.marshalNID2int(ctx, field.Selections, res)
+	return ec.marshalNID2string(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Like_userId(ctx context.Context, field graphql.CollectedField, obj *ent.Like) (ret graphql.Marshaler) {
@@ -755,9 +755,9 @@ func (ec *executionContext) _Like_restaurantId(ctx context.Context, field graphq
 		}
 		return graphql.Null
 	}
-	res := resTmp.(int)
+	res := resTmp.(string)
 	fc.Result = res
-	return ec.marshalNID2int(ctx, field.Selections, res)
+	return ec.marshalNID2string(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Location_address1(ctx context.Context, field graphql.CollectedField, obj *model.Location) (ret graphql.Marshaler) {
@@ -977,7 +977,7 @@ func (ec *executionContext) _Mutation_likeRestaurant(ctx context.Context, field 
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().LikeRestaurant(rctx, args["restaurantId"].(int))
+		return ec.resolvers.Mutation().LikeRestaurant(rctx, args["restaurantId"].(string))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1019,7 +1019,7 @@ func (ec *executionContext) _Mutation_cancelLike(ctx context.Context, field grap
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().CancelLike(rctx, args["restaurantId"].(int))
+		return ec.resolvers.Mutation().CancelLike(rctx, args["restaurantId"].(string))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1284,9 +1284,9 @@ func (ec *executionContext) _Restaurant_id(ctx context.Context, field graphql.Co
 		}
 		return graphql.Null
 	}
-	res := resTmp.(int)
+	res := resTmp.(string)
 	fc.Result = res
-	return ec.marshalNID2int(ctx, field.Selections, res)
+	return ec.marshalNID2string(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Restaurant_url(ctx context.Context, field graphql.CollectedField, obj *ent.Restaurant) (ret graphql.Marshaler) {
@@ -3234,13 +3234,13 @@ func (ec *executionContext) marshalNFloat2float64(ctx context.Context, sel ast.S
 	return res
 }
 
-func (ec *executionContext) unmarshalNID2int(ctx context.Context, v interface{}) (int, error) {
-	res, err := graphql.UnmarshalIntID(v)
+func (ec *executionContext) unmarshalNID2string(ctx context.Context, v interface{}) (string, error) {
+	res, err := graphql.UnmarshalID(v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) marshalNID2int(ctx context.Context, sel ast.SelectionSet, v int) graphql.Marshaler {
-	res := graphql.MarshalIntID(v)
+func (ec *executionContext) marshalNID2string(ctx context.Context, sel ast.SelectionSet, v string) graphql.Marshaler {
+	res := graphql.MarshalID(v)
 	if res == graphql.Null {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "must not be null")

@@ -9,7 +9,7 @@ import (
 )
 
 type CancelLikeService interface {
-	Call(ctx context.Context, meshiDB *ent.Client, restarurantID int) (int, error)
+	Call(ctx context.Context, meshiDB *ent.Client, restarurantID string) (int, error)
 }
 
 type cancelLikeService struct {
@@ -24,6 +24,6 @@ func NewCancelLikeService(l *zap.SugaredLogger, likeRepo repository.LikeReposito
 	}
 }
 
-func (s *cancelLikeService) Call(ctx context.Context, meshiDB *ent.Client, restarurantID int) (int, error) {
+func (s *cancelLikeService) Call(ctx context.Context, meshiDB *ent.Client, restarurantID string) (int, error) {
 	return s.likeRepo.Delete(ctx, meshiDB, restarurantID)
 }

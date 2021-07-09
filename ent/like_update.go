@@ -35,7 +35,7 @@ func (lu *LikeUpdate) SetUserID(s string) *LikeUpdate {
 }
 
 // SetRestaurantID sets the "restaurant" edge to the Restaurant entity by ID.
-func (lu *LikeUpdate) SetRestaurantID(id int) *LikeUpdate {
+func (lu *LikeUpdate) SetRestaurantID(id string) *LikeUpdate {
 	lu.mutation.SetRestaurantID(id)
 	return lu
 }
@@ -127,7 +127,7 @@ func (lu *LikeUpdate) sqlSave(ctx context.Context) (n int, err error) {
 			Table:   like.Table,
 			Columns: like.Columns,
 			ID: &sqlgraph.FieldSpec{
-				Type:   field.TypeInt,
+				Type:   field.TypeString,
 				Column: like.FieldID,
 			},
 		},
@@ -155,7 +155,7 @@ func (lu *LikeUpdate) sqlSave(ctx context.Context) (n int, err error) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: &sqlgraph.FieldSpec{
-					Type:   field.TypeInt,
+					Type:   field.TypeString,
 					Column: restaurant.FieldID,
 				},
 			},
@@ -171,7 +171,7 @@ func (lu *LikeUpdate) sqlSave(ctx context.Context) (n int, err error) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: &sqlgraph.FieldSpec{
-					Type:   field.TypeInt,
+					Type:   field.TypeString,
 					Column: restaurant.FieldID,
 				},
 			},
@@ -207,7 +207,7 @@ func (luo *LikeUpdateOne) SetUserID(s string) *LikeUpdateOne {
 }
 
 // SetRestaurantID sets the "restaurant" edge to the Restaurant entity by ID.
-func (luo *LikeUpdateOne) SetRestaurantID(id int) *LikeUpdateOne {
+func (luo *LikeUpdateOne) SetRestaurantID(id string) *LikeUpdateOne {
 	luo.mutation.SetRestaurantID(id)
 	return luo
 }
@@ -306,7 +306,7 @@ func (luo *LikeUpdateOne) sqlSave(ctx context.Context) (_node *Like, err error) 
 			Table:   like.Table,
 			Columns: like.Columns,
 			ID: &sqlgraph.FieldSpec{
-				Type:   field.TypeInt,
+				Type:   field.TypeString,
 				Column: like.FieldID,
 			},
 		},
@@ -351,7 +351,7 @@ func (luo *LikeUpdateOne) sqlSave(ctx context.Context) (_node *Like, err error) 
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: &sqlgraph.FieldSpec{
-					Type:   field.TypeInt,
+					Type:   field.TypeString,
 					Column: restaurant.FieldID,
 				},
 			},
@@ -367,7 +367,7 @@ func (luo *LikeUpdateOne) sqlSave(ctx context.Context) (_node *Like, err error) 
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: &sqlgraph.FieldSpec{
-					Type:   field.TypeInt,
+					Type:   field.TypeString,
 					Column: restaurant.FieldID,
 				},
 			},

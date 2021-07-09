@@ -26,8 +26,14 @@ func (lc *LikeCreate) SetUserID(s string) *LikeCreate {
 	return lc
 }
 
+// SetID sets the "id" field.
+func (lc *LikeCreate) SetID(s string) *LikeCreate {
+	lc.mutation.SetID(s)
+	return lc
+}
+
 // SetRestaurantID sets the "restaurant" edge to the Restaurant entity by ID.
-func (lc *LikeCreate) SetRestaurantID(id int) *LikeCreate {
+func (lc *LikeCreate) SetRestaurantID(id string) *LikeCreate {
 	lc.mutation.SetRestaurantID(id)
 	return lc
 }
@@ -94,6 +100,11 @@ func (lc *LikeCreate) check() error {
 	if _, ok := lc.mutation.UserID(); !ok {
 		return &ValidationError{Name: "user_id", err: errors.New("ent: missing required field \"user_id\"")}
 	}
+	if v, ok := lc.mutation.ID(); ok {
+		if err := like.IDValidator(v); err != nil {
+			return &ValidationError{Name: "id", err: fmt.Errorf("ent: validator failed for field \"id\": %w", err)}
+		}
+	}
 	if _, ok := lc.mutation.RestaurantID(); !ok {
 		return &ValidationError{Name: "restaurant", err: errors.New("ent: missing required edge \"restaurant\"")}
 	}
@@ -108,8 +119,6 @@ func (lc *LikeCreate) sqlSave(ctx context.Context) (*Like, error) {
 		}
 		return nil, err
 	}
-	id := _spec.ID.Value.(int64)
-	_node.ID = int(id)
 	return _node, nil
 }
 
@@ -119,11 +128,15 @@ func (lc *LikeCreate) createSpec() (*Like, *sqlgraph.CreateSpec) {
 		_spec = &sqlgraph.CreateSpec{
 			Table: like.Table,
 			ID: &sqlgraph.FieldSpec{
-				Type:   field.TypeInt,
+				Type:   field.TypeString,
 				Column: like.FieldID,
 			},
 		}
 	)
+	if id, ok := lc.mutation.ID(); ok {
+		_node.ID = id
+		_spec.ID.Value = id
+	}
 	if value, ok := lc.mutation.UserID(); ok {
 		_spec.Fields = append(_spec.Fields, &sqlgraph.FieldSpec{
 			Type:   field.TypeString,
@@ -141,7 +154,7 @@ func (lc *LikeCreate) createSpec() (*Like, *sqlgraph.CreateSpec) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: &sqlgraph.FieldSpec{
-					Type:   field.TypeInt,
+					Type:   field.TypeString,
 					Column: restaurant.FieldID,
 				},
 			},
@@ -195,8 +208,6 @@ func (lcb *LikeCreateBulk) Save(ctx context.Context) ([]*Like, error) {
 				}
 				mutation.id = &nodes[i].ID
 				mutation.done = true
-				id := specs[i].ID.Value.(int64)
-				nodes[i].ID = int(id)
 				return nodes[i], nil
 			})
 			for i := len(builder.hooks) - 1; i >= 0; i-- {

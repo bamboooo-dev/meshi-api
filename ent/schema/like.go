@@ -15,6 +15,7 @@ type Like struct {
 // Fields of the Like.
 func (Like) Fields() []ent.Field {
 	return []ent.Field{
+		field.String("id").NotEmpty().Unique().Immutable(),
 		field.String("user_id"),
 	}
 }

@@ -9,7 +9,7 @@ import (
 )
 
 type LikeRestaurantService interface {
-	Call(ctx context.Context, meshiDB *ent.Client, restarurantID int) (*ent.Like, error)
+	Call(ctx context.Context, meshiDB *ent.Client, restarurantID string) (*ent.Like, error)
 }
 
 type likeRestaurantService struct {
@@ -24,6 +24,6 @@ func NewLikeRestaurantService(l *zap.SugaredLogger, likeRepo repository.LikeRepo
 	}
 }
 
-func (s *likeRestaurantService) Call(ctx context.Context, meshiDB *ent.Client, restarurantID int) (*ent.Like, error) {
+func (s *likeRestaurantService) Call(ctx context.Context, meshiDB *ent.Client, restarurantID string) (*ent.Like, error) {
 	return s.likeRepo.Create(ctx, meshiDB, restarurantID)
 }

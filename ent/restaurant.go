@@ -14,7 +14,7 @@ import (
 type Restaurant struct {
 	config `json:"-"`
 	// ID of the ent.
-	ID int `json:"id,omitempty"`
+	ID string `json:"id,omitempty"`
 	// Name holds the value of the "name" field.
 	Name string `json:"name,omitempty"`
 	// URL holds the value of the "url" field.
@@ -51,9 +51,7 @@ func (*Restaurant) scanValues(columns []string) ([]interface{}, error) {
 	values := make([]interface{}, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case restaurant.FieldID:
-			values[i] = new(sql.NullInt64)
-		case restaurant.FieldName, restaurant.FieldURL, restaurant.FieldPhone, restaurant.FieldPrice:
+		case restaurant.FieldID, restaurant.FieldName, restaurant.FieldURL, restaurant.FieldPhone, restaurant.FieldPrice:
 			values[i] = new(sql.NullString)
 		default:
 			return nil, fmt.Errorf("unexpected column %q for type Restaurant", columns[i])
@@ -71,11 +69,11 @@ func (r *Restaurant) assignValues(columns []string, values []interface{}) error 
 	for i := range columns {
 		switch columns[i] {
 		case restaurant.FieldID:
-			value, ok := values[i].(*sql.NullInt64)
-			if !ok {
-				return fmt.Errorf("unexpected type %T for field id", value)
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field id", values[i])
+			} else if value.Valid {
+				r.ID = value.String
 			}
-			r.ID = int(value.Int64)
 		case restaurant.FieldName:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field name", values[i])

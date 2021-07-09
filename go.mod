@@ -16,5 +16,4 @@ require (
 	github.com/vektah/gqlparser/v2 v2.1.0
 	github.com/vmihailenco/msgpack/v5 v5.0.0-beta.9
 	go.uber.org/zap v1.17.0
-	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 )
